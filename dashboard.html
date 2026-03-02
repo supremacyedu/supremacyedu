@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Referrer Dashboard - Supremacy Edu</title>
+  
+  <link rel="stylesheet" href="dash.css" />
+  
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body style="display: none;"> <div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Supremacy Edu</h2>
+    </div>
+    <nav class="sidebar-nav">
+  <a class="nav-item active">Dashboard</a>
+  <a class="nav-item">My Referrals</a>
+  
+  <a class="nav-item" id="navDownloadReceipt" style="display:none"; color: #3b82f6; font-weight: 600; cursor: pointer;">
+    📥 My Receipt (PDF)
+  </a>
+  
+  <a class="nav-item">Commissions</a>
+</nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-bar">
+      <div>
+        <h1 class="page-title" id="welcomeText">Welcome back!</h1>
+        <p class="page-subtitle">Manage your referrals and track your earnings.</p>
+      </div>
+      <button class="btn btn-danger" onclick="logout()">Log Out</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="card">
+        <div class="stat-label">Total Referrals</div>
+        <div class="stat-value" id="statReferrals">0</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Total Earnings</div>
+        <div class="stat-value" id="statEarnings">₹0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="plan-section">
+        <div class="plan-header">
+          Your Active Plan
+          <button class="btn btn-primary" onclick="openDetailsModal()">Enroll / Upgrade Plan</button>
+        </div>
+        <div class="plan-status" id="planStatusInfo">
+  <strong>Status:</strong> No Active Plan
+</div>
+
+<div id="mobileDownloadContainer" style="display: none; margin-top: 15px;">
+  <button class="btn btn-outline" id="btnMobileDownload" style="width: 100%; border-color: #3b82f6; color: #3b82f6; display: flex; align-items: center; justify-content: center; gap: 8px;">
+    📥 Download My Receipt (PDF)
+  </button>
+</div>
+        <div class="plan-helper">
+          Please complete your enrollment to receive your unique Referrer ID.
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="detailsModal">
+  <div class="modal-card">
+    <h2>Enrollment Details</h2>
+    <p>Confirm your info and enter the RDE Code provided to you.</p>
+    <form id="detailsForm">
+      <div class="form-group"><input type="text" id="fullName" placeholder="Full Name" required /></div>
+      <div class="form-group"><input type="tel" id="phone" placeholder="WhatsApp Number" pattern="[0-9]{10}" required /></div>
+      <div class="form-group"><input type="text" id="rdeCode" placeholder="RDE Code" required /></div>
+      <small id="rdeError" style="color:#EF4444; display:none; margin-bottom: 12px; font-size: 13px; font-weight: 500;"></small>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeAll()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btnVerify">Verify & Continue</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="planModal">
+  <div class="modal-card plan-modal">
+    <h2>Select Your Kit</h2>
+    <div class="plans-grid">
+      <div class="plan-option" onclick="selectPlan(this, 120, '2%')"><div class="plan-fee">₹120</div><div class="plan-share">2% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 300, '3%')"><div class="plan-fee">₹300</div><div class="plan-share">3% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 600, '4%')"><div class="plan-fee">₹600</div><div class="plan-share">4% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 900, '5%')"><div class="plan-fee">₹900</div><div class="plan-share">5% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 1200, '6%')"><div class="plan-fee">₹1,200</div><div class="plan-share">6% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 2400, '8%')"><div class="plan-fee">₹2,400</div><div class="plan-share">8% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 6000, '10%')"><div class="plan-fee">₹6,000</div><div class="plan-share">10% Share</div></div>
+      <div class="plan-option" onclick="selectPlan(this, 12000, '12%')"><div class="plan-fee">₹12,000</div><div class="plan-share">12% Share</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-primary" id="btnProceedPayment" disabled onclick="startPayment()">Proceed to Payment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="successModal">
+<div class="modal-overlay" id="successModal">
+  <div class="modal-card" style="text-align: center;">
+    <h2 style="color: #059669;">🎉 Payment Successful!</h2>
+    <p>Welcome to Supremacy Edu. Your account is now active.</p>
+    
+    <div style="background: #F8FAFC; padding: 24px; border-radius: 12px; margin: 24px 0; border: 2px dashed #CBD5E1;">
+      <p style="font-size: 14px; color: #64748B;">Your Unique Referrer ID</p>
+      <h1 id="generatedRefId" style="color: #0F172A; font-size: 32px; letter-spacing: 2px;">---</h1>
+    </div>
+    
+    <button class="btn btn-outline" id="btnDownloadReceipt" style="width: 100%; margin-bottom: 12px; border-color: #3b82f6; color: #3b82f6;">
+      📥 Download Receipt & Policy (PDF)
+    </button>
+    
+    <button class="btn btn-primary" style="width: 100%;" onclick="location.reload()">Go to Dashboard</button>
+  </div>
+</div>
+
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>

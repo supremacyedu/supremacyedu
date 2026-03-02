@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - Signup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+    
+    <style>
+        /* 1. Remove the line at the back */
+        header {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* 2. Keep inputs safely inside the card */
+        .signup-card {
+            box-sizing: border-box !important;
+            width: 90% !important; /* Prevents touching screen edges on mobile */
+            max-width: 450px !important;
+            margin: 0 auto;
+        }
+
+        .input-group, .input-group input {
+            width: 100% !important;
+            box-sizing: border-box !important; /* Stops padding from pushing inputs out */
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body class="auth-page">
+
+    <header>
+        <a href="index.html" class="back-btn">← Back to Website</a>
+    </header>
+
+    <div class="signup-card">
+        <h2>Create Your Account</h2>
+        <p>Sign up to access the Referrer portal</p>
+
+        <div class="input-group">
+            <input type="text" id="fullName" placeholder="Full Name" required>
+        </div>
+        <div class="input-group">
+            <input type="tel" id="phone" placeholder="Phone Number" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" required>
+        </div>
+        <div class="input-group">
+            <input type="email" id="email" placeholder="Email Address" required>
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" placeholder="Password" required>
+        </div>
+        <div class="input-group" id="referralGroup" style="display: none;">
+            <input type="text" id="referralCode" placeholder="Referral Code (Optional)">
+        </div>
+
+        <div class="options">
+            <label><input type="checkbox" id="terms" required> I agree to Terms & Conditions</label>
+        </div>
+
+        <button class="primary-btn" onclick="handleSignup()">Sign Up</button>
+        
+        <div id="message" style="margin-top: 10px; text-align: center; color: red;"></div>
+
+        <div class="login-link">
+            Already have an account? <a href="login.html">Login</a>
+        </div>
+    </div>
+
+    <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    window.handleSignup = async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const fullName = document.getElementById('fullName').value;
+        const phone = document.getElementById('phone').value;
+        const messageDiv = document.getElementById('message');
+
+        try {
+            // 1. Create the Auth User
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (authError) throw authError;
+
+            if (authData.user) {
+                // 2. Insert into the referrers table
+                const { error: dbError } = await supabase
+                    .from('referrers') 
+                    .insert([
+                        { 
+                            id: authData.user.id, 
+                            name: fullName, 
+                            phone: phone
+                        }
+                    ]);
+
+                if (dbError) throw dbError;
+
+                // 3. Success! Redirect
+                window.location.href = "dashboard.html";
+            }
+        } catch (err) {
+            document.getElementById('message').innerText = err.message;
+            console.error(err);
+        }
+    };
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "firebase": "^12.9.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "3.6",
+    "mongoose": "^9.2.2",
+    "razorpay": "^2.9.6"
+  },
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/karthhiikkk/supremacy-edu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/karthhiikkk/supremacy-edu/issues"
+  },
+  "homepage": "https://github.com/karthhiikkk/supremacy-edu#readme",
+  "devDependencies": {
+    "supabase": "^2.76.15"
+  }
+}

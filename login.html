@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="src/logo_b.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+    
+    <style>
+        /* 1. Remove the line at the back */
+        header {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+        }
+        
+        /* 2. REMOVE THE WHITE PATCH (Kill gradients, force solid color) */
+        body.auth-page {
+            background-image: none !important; /* This strips out the glowing white gradient */
+            background-color: #0f172a !important; /* Forces a solid dark blue background */
+            overflow-x: hidden !important; /* Prevents any hidden elements from stretching the screen */
+        }
+
+        /* 3. Keep inputs safely inside the card */
+        .login-card, .signup-card {
+            box-sizing: border-box !important;
+            width: 90% !important; 
+            max-width: 450px !important;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .input-group, .input-group input {
+            width: 100% !important;
+            box-sizing: border-box !important; 
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body class="auth-page">
+    <header>
+        <a href="index.html" class="back-btn">← Back to Website</a>
+    </header>
+
+    <div class="login-card">
+        <h2>Referrer Login</h2>
+        <p>Access your referral dashboard</p>  
+        
+        <div class="input-group">
+            <input type="email" id="email" placeholder="Email Address" required>
+        </div>
+
+        <div class="input-group">
+            <input type="password" id="password" placeholder="Password" required>
+        </div>
+
+        <div class="options">
+            <label><input type="checkbox"> Remember Me</label>
+            <a href="#">Forgot Password?</a>
+        </div>
+
+        <button class="primary-btn" onclick="handleLogin()">Login as Referrer</button>
+        
+        <div id="message" style="margin-top: 10px; text-align: center; color: red;"></div>
+
+        <div class="signup">
+            Don't have an account? <a href="signup.html">Sign Up</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+        const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co'; 
+        const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        window.handleLogin = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    messageDiv.innerText = error.message;
+                } else {
+                    // Success!
+                    console.log("Login success:", data);
+                    window.location.href = "dashboard.html"; 
+                }
+            } catch (err) {
+                messageDiv.innerText = "An unexpected error occurred.";
+                console.error(err);
+            }
+        };
+    </script>
+</body>
+</html>
