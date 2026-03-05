@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to the Supremacy Edu portal to access your dashboard, referral stats, and resources.">
+    <title>Supremacy Edu - Portal Login</title>
+    <link rel="stylesheet" href="auth.css">
+    <style>
+        /* Specific toggle styles moved from inline to head */
+        .role-toggle { display: flex; background: rgba(255,255,255,0.1); border-radius: 30px; padding: 5px; margin-bottom: 25px; position: relative; border: 1px solid #e2e8f0; }
+        .role-toggle input { display: none; }
+        .role-toggle label { flex: 1; text-align: center; padding: 10px; cursor: pointer; z-index: 2; color: #64748b; font-weight: bold; transition: color 0.3s; }
+        .slider { position: absolute; top: 5px; left: 5px; width: calc(50% - 5px); height: calc(100% - 10px); background: #2563eb; border-radius: 25px; z-index: 1; transition: transform 0.3s; }
+        
+        #role-referrer:checked ~ .label-referrer { color: white; }
+        #role-referrer:checked ~ .slider { transform: translateX(0); }
+        #role-rde:checked ~ .label-rde { color: white; }
+        #role-rde:checked ~ .slider { transform: translateX(100%); }
+    </style>
+</head>
+<body class="auth-page">
+    
+    <header>
+        <a href="index.html" class="back-btn">← Back to Website</a>
+    </header>
+
+    <main class="login-card">
+        <h2>Portal Login</h2>
+        <p>Access your Supremacy Edu dashboard</p>
+        
+        <div class="role-toggle">
+            <input type="radio" id="role-referrer" name="role" value="referrer" checked onchange="toggleForms()">
+            <input type="radio" id="role-rde" name="role" value="rde" onchange="toggleForms()">
+            <div class="slider"></div>
+            <label for="role-referrer" class="label-referrer">Referrer</label>
+            <label for="role-rde" class="label-rde">RDE</label>
+        </div>
+
+        <form id="loginForm">
+            <div id="referrer-fields">
+                <div class="input-group"><input type="email" id="ref-email" placeholder="Email Address"></div>
+                <div class="input-group"><input type="password" id="ref-password" placeholder="Password"></div>
+            </div>
+
+            <div id="rde-fields" style="display: none;">
+                <div class="input-group"><input type="text" id="rde-code" placeholder="RDE Code (e.g. RDE001A)" style="text-transform: uppercase;"></div>
+                <div class="input-group"><input type="tel" id="rde-phone" placeholder="Phone Number"></div>
+                <div class="input-group"><input type="password" id="rde-password" placeholder="Password"></div>
+            </div>
+
+            <button type="submit" class="primary-btn">Login</button>
+            <div id="message" style="margin-top: 15px; font-size: 14px; text-align: center; font-weight: 500;"></div>
+        </form>
+
+        <div class="signup">
+            Don't have an account? <a href="signup.html">View Plans</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        window.toggleForms = () => {
+            const isRde = document.getElementById('role-rde').checked;
+            document.getElementById('referrer-fields').style.display = isRde ? 'none' : 'block';
+            document.getElementById('rde-fields').style.display = isRde ? 'block' : 'none';
+            document.getElementById('message').innerText = ""; 
+        };
+
+        document.getElementById('loginForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const role = document.querySelector('input[name="role"]:checked').value;
+            const msg = document.getElementById('message');
+            const btn = document.querySelector('.primary-btn');
+            
+            msg.style.color = "#2563eb"; 
+            msg.innerText = "Authenticating...";
+            btn.disabled = true;
+
+            try {
+                if (role === 'referrer') {
+                    const email = document.getElementById('ref-email').value;
+                    const pass = document.getElementById('ref-password').value;
+                    if (!email || !pass) throw new Error("Please enter email and password.");
+
+                    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+                    if (error) throw new Error("Invalid credentials.");
+                    
+                    window.location.href = "dashboard.html"; 
+
+                } else if (role === 'rde') {
+                    // Your existing RDE logic remains untouched
+                    const rawCode = document.getElementById('rde-code').value.toUpperCase();
+                    const rawPhone = document.getElementById('rde-phone').value;
+                    const rawPass = document.getElementById('rde-password').value;
+
+                    if (!rawCode || !rawPhone || !rawPass) throw new Error("Please fill all RDE fields.");
+
+                    const cleanPhoneInput = String(rawPhone).replace(/\s+/g, '');
+                    
+                    const { data: allowedData, error: allowedError } = await supabase
+                        .from('allowed_rdes')
+                        .select('*')
+                        .ilike('rde_code', rawCode)
+                        .single();
+
+                    if (!allowedData) throw new Error(`RDE Code "${rawCode}" not found.`);
+
+                    const dbPhone = String(allowedData.phone).replace(/\s+/g, '');
+                    const dbPass = String(allowedData.password).trim();
+
+                    if (dbPhone !== cleanPhoneInput || dbPass !== rawPass) {
+                        throw new Error("Phone number or password does not match.");
+                    }
+
+                    const hiddenEmail = `${rawCode.toLowerCase()}@rde.supremacyedu.com`;
+                    let { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email: hiddenEmail, password: rawPass });
+
+                    if (authError && authError.message.includes("Invalid login")) {
+                        msg.innerText = "Setting up secure session...";
+                        const { data: signUpData, error: signErr } = await supabase.auth.signUp({ email: hiddenEmail, password: rawPass });
+                        if (signErr) throw signErr;
+                        authData = signUpData;
+                    } else if (authError) throw authError;
+
+                    const { data: existing } = await supabase.from('rdes').select('id').eq('id', authData.user.id).maybeSingle();
+                    if (!existing) {
+                        const { error: insertErr } = await supabase.from('rdes').insert([{ id: authData.user.id, name: "RDE User", phone: cleanPhoneInput }]);
+                        if (insertErr) throw new Error("Profile creation error.");
+                    }
+
+                    window.location.href = "dashboard-rde.html"; 
+                }
+            } catch (err) {
+                msg.style.color = "#ef4444"; 
+                msg.innerText = err.message;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

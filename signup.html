@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Join Supremacy Edu. Create your account and choose your RDE plan.">
+    <title>Supremacy Edu - Secure Registration</title>
+    <link rel="stylesheet" href="auth.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="auth-page">
+
+    <header>
+        <a href="index.html" class="back-btn">← Back to Website</a>
+    </header>
+
+    <main class="signup-card" id="mainCard">
+        
+        <div id="step1">
+            <h2>Join Supremacy Edu</h2>
+            <p>Enter your details and RDE sponsor code.</p>
+
+            <form id="strictSignupForm" class="signup-form">
+                <div class="input-group">
+                    <input type="text" id="regName" placeholder="Full Name" required>
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="regPhone" placeholder="Phone Number" pattern="[0-9]{10}" maxlength="10" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="regEmail" placeholder="Email Address" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="regPassword" placeholder="Create Password" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="regRdeCode" placeholder="RDE Referral Code (e.g. RDE001A)" required>
+                </div>
+
+                <div class="options" style="justify-content: flex-start; gap: 8px;">
+                    <input type="checkbox" id="regTerms" required>
+                    <label for="regTerms" style="cursor: pointer;">I agree to the Terms & Conditions</label>
+                </div>
+
+                <button type="button" id="proceedToPlansBtn" class="primary-btn btn-locked" disabled>
+                    Proceed to Choose Plan
+                </button>
+            </form>
+            
+            <div class="login-link">
+                Already have an account? <a href="login.html">Login</a>
+            </div>
+        </div>
+
+        <div id="step2" class="hidden-step">
+            <h2>Select Your Plan</h2>
+            <p>Choose your access tier to activate your account.</p>
+            
+            <div id="errorMessage" style="color: #ef4444; display: none; margin-bottom: 15px; font-size: 14px; background: #fee2e2; padding: 10px; border-radius: 5px; text-align: center;"></div>
+
+            <div class="plans-grid">
+                <div class="plan-card" data-plan-id="1" data-price="120" data-name="₹120 Plan">
+                    <div class="price">₹120</div>
+                    <div class="share-badge">2% Share</div>
+                </div>
+                <div class="plan-card" data-plan-id="2" data-price="300" data-name="₹300 Plan">
+                    <div class="price">₹300</div>
+                    <div class="share-badge">3% Share</div>
+                </div>
+                <div class="plan-card" data-plan-id="3" data-price="600" data-name="₹600 Plan">
+                    <div class="price">₹600</div>
+                    <div class="share-badge">4% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+                <div class="plan-card" data-plan-id="4" data-price="900" data-name="₹900 Plan">
+                    <div class="price">₹900</div>
+                    <div class="share-badge">5% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+                <div class="plan-card" data-plan-id="5" data-price="1200" data-name="₹1,200 Plan">
+                    <div class="price">₹1,200</div>
+                    <div class="share-badge">6% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+                <div class="plan-card" data-plan-id="6" data-price="2400" data-name="₹2,400 Plan">
+                    <div class="price">₹2,400</div>
+                    <div class="share-badge">8% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+                <div class="plan-card" data-plan-id="7" data-price="6000" data-name="₹6,000 Plan">
+                    <div class="price">₹6,000</div>
+                    <div class="share-badge">10% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+                <div class="plan-card" data-plan-id="8" data-price="12000" data-name="₹12,000 Plan">
+                    <div class="price">₹12,000</div>
+                    <div class="share-badge">12% Share</div>
+                    <div class="refundable-tag">* Refundable</div>
+                </div>
+            </div>
+
+            <button type="button" id="backToStep1Btn" style="background: transparent; border: none; color: #94a3b8; width: 100%; margin-top: 20px; cursor: pointer;">
+                ← Back to Edit Details
+            </button>
+        </div>
+
+    </main>
+
+    <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+    let globalUserId = null; // Store the ID temporarily for the session
+
+    // --- STEP 1: AUTHENTICATION & ROW CREATION ---
+    document.getElementById('proceedToPlansBtn').addEventListener('click', async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+
+        try {
+            // 1. Always try to sign in first (Handles page refreshes perfectly)
+            let { data: authData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+            
+            // 2. If sign in fails, they are brand new. Sign them up!
+            if (signInError) {
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+                if (signUpError) throw signUpError;
+                authData = signUpData;
+            }
+
+            globalUserId = authData.user.id;
+
+            // 3. Upsert the Database Row (Safe, no duplicate errors)
+            const { error: dbError } = await supabase.from('users').upsert([{
+                id: globalUserId,
+                name: document.getElementById('regName').value,
+                phone: document.getElementById('regPhone').value,
+                email: email,
+                rde_code_used: document.getElementById('regRdeCode').value.toUpperCase(),
+                plan_id: 1, 
+                payment_status: 'pending'
+            }], { onConflict: 'id' });
+
+            if (dbError) throw dbError;
+
+            // 4. Move to Step 2
+            document.getElementById('step1').classList.add('hidden-step');
+            document.getElementById('step2').classList.remove('hidden-step');
+
+        } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.innerText = "Proceed to Choose Plan";
+        }
+    });
+
+    // --- STEP 2: PLAN SELECTION & RAZORPAY ---
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', async () => {
+            const planId = parseInt(card.getAttribute('data-plan-id'));
+            const planPrice = parseInt(card.getAttribute('data-price'));
+            const planName = card.getAttribute('data-name');
+            
+            try {
+                // Update their plan choice in the database
+                await supabase.from('users')
+                    .update({ plan_id: planId })
+                    .eq('id', globalUserId);
+
+                // Launch Razorpay
+                const options = {
+                    "key": "rzp_test_SL5QmrUjsCBTzM", // IMPORTANT: Swap to your test key
+                    "amount": planPrice * 100,
+                    "currency": "INR",
+                    "name": "Supremacy Edu",
+                    "description": `${planName} Plan Access`,
+                    "prefill": {
+                        "name": document.getElementById('regName').value,
+                        "email": document.getElementById('regEmail').value,
+                        "contact": document.getElementById('regPhone').value
+                    },
+                    "notes": {
+                        "supabase_user_id": globalUserId // THE MAGIC LINK FOR THE WEBHOOK
+                    },
+                    "theme": { "color": "#2563eb" },
+                    "handler": function (response) {
+                        // Success! Send to Dashboard
+                        window.location.href = "dashboard.html";
+                    }
+                };
+                new window.Razorpay(options).open();
+
+            } catch (err) {
+                alert("Error initializing payment: " + err.message);
+            }
+        });
+    });
+    
+    // UI Logic (Back Button)
+    document.getElementById('backToStep1Btn').addEventListener('click', () => {
+        document.getElementById('step2').classList.add('hidden-step');
+        document.getElementById('step1').classList.remove('hidden-step');
+        document.getElementById('proceedToPlansBtn').innerText = "Proceed to Choose Plan";
+        document.getElementById('proceedToPlansBtn').disabled = false;
+    });
+
+    // --- UI UTILITIES (Form Validation) ---
+    const inputs = [
+        document.getElementById('regName'),
+        document.getElementById('regPhone'),
+        document.getElementById('regEmail'),
+        document.getElementById('regPassword'),
+        document.getElementById('regRdeCode'),
+        document.getElementById('regTerms')
+    ];
+    
+    const proceedBtn = document.getElementById('proceedToPlansBtn');
+
+    const checkValidity = () => {
+        const isValid = inputs.every(input => 
+            input.type === 'checkbox' ? input.checked : input.value.trim() !== ''
+        );
+        proceedBtn.disabled = !isValid;
+        proceedBtn.classList.toggle('btn-locked', !isValid);
+    };
+
+    inputs.forEach(input => {
+        input.addEventListener('input', checkValidity);
+        input.addEventListener('change', checkValidity);
+    });
+</script>
+</body>
+</html>

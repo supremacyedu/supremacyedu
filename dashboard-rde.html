@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - RDE Analytics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: Arial; padding: 20px; visibility: hidden; }
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 20px; margin-bottom: 30px; }
+        .primary-btn { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: #1e293b; padding: 25px; border-radius: 10px; border: 1px solid #334155; text-align: center; }
+        .card h3 { color: #94a3b8; font-size: 16px; margin: 0 0 10px 0; }
+        .card .value { font-size: 32px; font-weight: bold; color: #38bdf8; margin: 0; }
+        .chart-card { background: #1e293b; padding: 25px; border-radius: 10px; border: 1px solid #334155; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 1000px; margin: 0 auto;">
+        <div class="header">
+            <h1 id="welcome">Loading...</h1>
+            <button class="primary-btn" onclick="handleLogout()">Logout</button>
+        </div>
+
+        <div class="grid">
+            <div class="card"><h3>Points Today</h3><p class="value" id="stat-today">0</p></div>
+            <div class="card"><h3>Points This Month</h3><p class="value" id="stat-month">0</p></div>
+            <div class="card"><h3>Total Points</h3><p class="value" id="stat-all">0</p></div>
+        </div>
+
+        <div class="chart-card">
+            <h2 style="margin-top:0;">7-Day Points Trend</h2>
+            <canvas id="pointsChart" height="100"></canvas> 
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        const multipliers = { "120": 1, "300": 2.5, "600": 5, "900": 7.5, "1200": 10, "2400": 20, "6000": 50, "12000": 100 };
+
+        async function init() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error || !session) return window.location.replace('login.html');
+
+            const { data: profile } = await supabase.from('rdes').select('phone').eq('id', session.user.id).single();
+            if (!profile) { await supabase.auth.signOut(); return window.location.replace('login.html'); }
+
+            const { data: admin } = await supabase.from('allowed_rdes').select('rde_code').eq('phone', profile.phone).single();
+            const myCode = admin ? admin.rde_code : "Unknown";
+            
+            document.getElementById('welcome').innerText = `RDE Analytics: ${myCode.toUpperCase()}`;
+            document.body.style.visibility = 'visible';
+
+            // Fetch live referrers
+            if (myCode !== "Unknown") {
+                const { data: referrers } = await supabase.from('referrers').select('*').ilike('rde_code', myCode);
+                if (referrers) processData(referrers);
+            }
+        }
+
+        function processData(referrers) {
+            let totalAll = 0, totalMonth = 0, totalToday = 0;
+            let dailyMap = {};
+            const todayStr = new Date().toISOString().split('T')[0];
+            const currentMonth = todayStr.substring(0, 7);
+
+            referrers.forEach(ref => {
+                const dateStr = new Date(ref.created_at).toISOString().split('T')[0];
+                const points = multipliers[String(ref.plan_type || "0")] || 0;
+                
+                totalAll += points;
+                if (dateStr.startsWith(currentMonth)) totalMonth += points;
+                if (dateStr === todayStr) totalToday += points;
+
+                dailyMap[dateStr] = (dailyMap[dateStr] || 0) + points;
+            });
+
+            document.getElementById('stat-today').innerText = totalToday;
+            document.getElementById('stat-month').innerText = totalMonth;
+            document.getElementById('stat-all').innerText = totalAll;
+
+            // Chart
+            const dates = Object.keys(dailyMap).sort().slice(-7);
+            const dataPoints = dates.map(d => dailyMap[d]);
+
+            new Chart(document.getElementById('pointsChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: dates, datasets: [{ label: 'Points', data: dataPoints, backgroundColor: '#38bdf8' }] },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        window.handleLogout = async () => { await supabase.auth.signOut(); window.location.replace('login.html'); };
+        init();
+    </script>
+</body>
+</html>

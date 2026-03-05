@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apply Now | Supremacy Edu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="src/logo.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body style="background-color: #f1f5f9;">
+
+<header>
+    <div class="nav-brand">
+        <img src="src/logo_b.png" alt="Supremacy Edu logo">
+        <div class="site-title">
+            <span class="site-name">Supremacy Edu</span>
+            <span class="site-subtitle">Learn Beyond</span>
+        </div>
+    </div>
+    <nav id="nav-menu">
+        <a href="index.html">Home</a>
+        <a href="courses.html">Programs</a>
+        <a href="about.html">Our Vision</a>
+        <a href="contact.html">Centers</a>
+        <div class="nav-actions">
+            <a href="login.html" class="link-login">Partner Login</a>
+            <a href="admission.html" class="btn-primary">Apply Now</a>
+        </div>
+    </nav>
+</header>
+
+<div class="section-container" style="padding-top: 50px;">
+    
+    <div class="section-title">
+        <h2>Secure Your Seat</h2>
+        <p>Fill out the form below to begin your journey with Supremacy Edu.</p>
+    </div>
+
+    <div class="form-section">
+        <form id="admissionForm" method="POST">
+            
+            <h3 style="margin-bottom: 25px; color: var(--primary);">Student Information</h3>
+
+            <div class="form-group">
+                <label class="form-label">Full Name of Student</label>
+                <input type="text" name="fullname" class="form-control" placeholder="e.g. Rahul Sharma" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Parent / Guardian Name</label>
+                <input type="text" name="parentname" class="form-control" placeholder="e.g. Manoj Sharma" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Contact Number</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="10-digit Mobile" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" placeholder="student@example.com" required>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+            <h3 style="margin-bottom: 25px; color: var(--primary);">Academic Details</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Current Grade / Class</label>
+                    <select name="currentGrade" class="form-control" required>
+                        <option value="">Select Grade</option>
+                        <option>7th Standard</option>
+                        <option>8th Standard</option>
+                        <option>9th Standard</option>
+                        <option>10th Standard</option>
+                        <option>11th Standard</option>
+                        <option>12th Standard</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Interested Course</label>
+                    <select name="targetCourse" class="form-control" required>
+                        <option value="">Select Course</option>
+                        <option>School Foundation (8-10)</option>
+                        <option>NEET (Medical)</option>
+                        <option>JEE (Engineering)</option>
+                        <option>MHT-CET</option>
+                        <option>CA Foundation</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Preferred Center</label>
+                <select name="branch" class="form-control" required>
+                    <option value="">Select Nearest Branch</option>
+                    <option>Andheri (Head Office)</option>
+                    <option>Borivali West</option>
+                    <option>Malad East</option>
+                    <option>Dahisar East</option>
+                    <option>Ambernath / Badlapur</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Any Specific Query? (Optional)</label>
+                <textarea name="message" class="form-control" rows="3" placeholder="Tell us about your learning goals..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block">Submit Application</button>
+            <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #64748b;">
+                Our academic counselor will contact you within 24 hours.
+            </p>
+
+        </form>
+    </div>
+</div>
+
+<footer>
+    <div class="copyright">
+        © 2026 Supremacy Edu Corp. | All Rights Reserved
+    </div>
+</footer>
+
+<script>
+    // Keep your existing script logic, just ensure IDs match
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("admissionForm");
+        const scriptURL = "https://script.google.com/macros/s/AKfycbyzdi-PHeUfPZf7bC4L8mt3XMmrUZy5oQbJRB4FWxtsQi6cGjwZ5UPHxitgf3AIiJkN/exec";
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = 'Submitting...';
+            btn.disabled = true;
+
+            const formData = new FormData(form);
+
+            fetch(scriptURL, {
+                method: "POST",
+                body: formData,
+                mode: "no-cors"
+            })
+            .then(() => {
+                alert("Application submitted successfully!");
+                form.reset();
+                btn.innerText = originalText;
+                btn.disabled = false;
+            })
+            .catch(() => {
+                alert("Submission failed. Please try again.");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        });
+    });
+</script>
+</body>
+</html>
