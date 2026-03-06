@@ -2,240 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Supremacy Edu - Referrer Signup</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supremacy Edu - Secure Registration</title>
     <link rel="stylesheet" href="auth.css">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body class="auth-page">
 
-    <header>
-        <a href="index.html" class="back-btn">← Back to Website</a>
-    </header>
+    <div class="signup-card">
+        <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
 
-    <main class="signup-card" id="mainCard">
+        <h2>Create Account</h2>
+        <p>Join the Supremacy Edu Platform</p>
+
+        <form id="signup-form">
+            <div class="input-group"><input type="text" id="reg-name" placeholder="Full Name" required></div>
+            <div class="input-group"><input type="tel" id="reg-phone" placeholder="Phone Number" required></div>
+            <div class="input-group"><input type="email" id="reg-email" placeholder="Email Address" required></div>
+            
+            <div class="input-group"><input type="text" id="regRdeCode" placeholder="RDE Code (e.g., RDE001A)" required></div>
+            <div class="input-group"><input type="password" id="reg-pass" placeholder="Create Password" required></div>
+            
+            <div class="options" style="gap: 10px;">
+                <input type="checkbox" id="agree-tc" required>
+                <label for="agree-tc">I agree to the <a href="#" style="color: var(--primary); text-decoration: none;">Terms & Conditions</a></label>
+            </div>
+            
+            <button type="submit" class="primary-btn">Sign Up</button>
+        </form>
+
+        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
         
-        <div id="step1">
-            <h2>Join Supremacy Edu</h2>
-            <p>Enter your details and RDE sponsor code.</p>
-
-            <form id="strictSignupForm" class="signup-form">
-                <div class="input-group">
-                    <input type="text" id="regName" placeholder="Full Name" required>
-                </div>
-                <div class="input-group">
-                    <input type="tel" id="regPhone" placeholder="Phone Number" pattern="[0-9]{10}" maxlength="10" required>
-                </div>
-                <div class="input-group">
-                    <input type="email" id="regEmail" placeholder="Email Address" required>
-                </div>
-                <div class="input-group">
-                    <input type="password" id="regPassword" placeholder="Create Password" required>
-                </div>
-                <div class="input-group">
-                    <input type="text" id="regRdeCode" placeholder="RDE Referral Code (e.g. RDE001A)" required>
-                </div>
-
-                <div class="options" style="justify-content: flex-start; gap: 8px;">
-                    <input type="checkbox" id="regTerms" required>
-                    <label for="regTerms" style="cursor: pointer;">I agree to the Terms & Conditions</label>
-                </div>
-
-                <button type="button" id="proceedToPlansBtn" class="primary-btn btn-locked" disabled>
-                    Proceed to Choose Plan
-                </button>
-            </form>
-            
-            <div class="login-link">
-                Already have an account? <a href="login.html">Login</a>
-            </div>
+        <div class="login-link">
+            Already have an account? <a href="login.html">Log in here</a>
         </div>
-
-        <div id="step2" class="hidden-step">
-            <h2>Select Your Plan</h2>
-            <p>Choose your access tier to activate your account.</p>
-            
-            <div id="errorMessage" style="color: #ef4444; display: none; margin-bottom: 15px; font-size: 14px; background: #fee2e2; padding: 10px; border-radius: 5px; text-align: center;"></div>
-
-            <div class="plans-grid">
-                <div class="plan-card" data-plan-id="1" data-price="1" data-name="₹120 Plan">
-                    <div class="price">₹120 (Test: ₹1)</div>
-                    <div class="share-badge">2% Share</div>
-                </div>
-                <div class="plan-card" data-plan-id="2" data-price="300" data-name="₹300 Plan">
-                    <div class="price">₹300</div>
-                    <div class="share-badge">3% Share</div>
-                </div>
-                <div class="plan-card" data-plan-id="3" data-price="600" data-name="₹600 Plan">
-                    <div class="price">₹600</div>
-                    <div class="share-badge">4% Share</div>
-                </div>
-            </div>
-
-            <button type="button" id="backToStep1Btn" style="background: transparent; border: none; color: #94a3b8; width: 100%; margin-top: 20px; cursor: pointer;">
-                ← Back to Edit Details
-            </button>
-        </div>
-    </main>
+    </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        
-        // ⚠️ PASTE YOUR KEYS HERE FROM YOUR .env FILE ⚠️
-        const SUPABASE_URL = 'https://dlszqasvqubjujkowrtl.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsc3pxYXN2cXVianVqa293cnRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjQxOTUsImV4cCI6MjA4NzcwMDE5NX0.BBgj6hx8OD8GneOdali0dLwR9Yrpo6_kqfM-Iwo0G5o';
-        const RAZORPAY_TEST_KEY = 'rzp_test_SL5QmrUjsCBTzM';
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
 
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let globalUserId = null;
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('message');
+            msg.style.display = "block";
+            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+            msg.style.color = "#38bdf8"; 
+            msg.innerText = "Creating your account...";
 
-        // --- DOM Elements ---
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const proceedBtn = document.getElementById('proceedToPlansBtn');
-        const backBtn = document.getElementById('backToStep1Btn');
-        const errorMsg = document.getElementById('errorMessage');
-        const inputs = [
-            document.getElementById('regName'), document.getElementById('regPhone'),
-            document.getElementById('regEmail'), document.getElementById('regPassword'),
-            document.getElementById('regRdeCode'), document.getElementById('regTerms')
-        ];
-
-        // --- STEP 1: AUTHENTICATION & UPSERT ---
-        proceedBtn.addEventListener('click', async () => {
-            const email = document.getElementById('regEmail').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const name = document.getElementById('regName').value.trim();
-            const phone = document.getElementById('regPhone').value.trim();
-            const rdeCode = document.getElementById('regRdeCode').value.trim().toUpperCase();
-
-            proceedBtn.disabled = true;
-            proceedBtn.innerText = "Checking details...";
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const rdeCode = document.getElementById('regRdeCode').value.trim();
+            const password = document.getElementById('reg-pass').value;
 
             try {
-                // 1. Smart Sign Up / Sign In
-                let { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-                
-                if (authError && authError.message.includes("already registered")) {
-                    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-                    if (signInError) throw new Error("Email already registered. Please use correct password or login.");
-                    authData = signInData;
-                } else if (authError) {
-                    throw authError;
-                }
+                // 1. Verify the RDE Code actually exists before letting them sign up
+                const { data: validRde, error: rdeErr } = await supabase
+                    .from('allowed_rdes')
+                    .select('rde_code')
+                    .ilike('rde_code', rdeCode)
+                    .single();
 
-                globalUserId = authData.user.id;
+                if (!validRde) throw new Error(`Invalid RDE Code: ${rdeCode}. Please check with your referrer.`);
 
-                // 2. Prevent Double Payment
-                const { data: existingUser } = await supabase.from('users').select('payment_status').eq('id', globalUserId).maybeSingle();
-                if (existingUser && existingUser.payment_status === 'paid') {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
+                // 2. Create the Auth Account
+                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+                if (authErr) throw authErr;
 
-                // 3. Upsert DB Row Safely
-                const { error: dbError } = await supabase.from('users').upsert({
-                    id: globalUserId,
+                // 3. Save to the new 'users' table with pending status
+                const { error: insertErr } = await supabase.from('users').insert([{
+                    id: authData.user.id,
                     name: name,
                     phone: phone,
                     email: email,
-                    rde_code_used: rdeCode,
-                    plan_id: 1, 
-                    payment_status: 'pending'
-                });
-                if (dbError) throw dbError;
+                    rde_code_used: validRde.rde_code, 
+                    payment_status: 'pending' 
+                }]);
 
-                // 4. Move to Step 2
-                step1.classList.add('hidden-step');
-                step2.classList.remove('hidden-step');
-                window.scrollTo(0,0);
+                if (insertErr) throw insertErr;
+
+                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+                msg.style.color = "#4ade80"; // Green
+                msg.innerText = "Account created! Redirecting to dashboard...";
+                
+                setTimeout(() => { window.location.href = "login.html"; }, 1500);
 
             } catch (err) {
-                alert(err.message);
-                proceedBtn.disabled = false;
-                proceedBtn.innerText = "Proceed to Choose Plan";
+                msg.style.backgroundColor = "var(--error-bg)";
+                msg.style.color = "var(--error-text)"; // Red
+                msg.innerText = err.message;
             }
-        });
-
-        // --- STEP 2: RAZORPAY & NOTES INJECTION ---
-        document.querySelectorAll('.plan-card').forEach(card => {
-            card.addEventListener('click', async () => {
-                const planId = parseInt(card.getAttribute('data-plan-id'));
-                const planPrice = parseInt(card.getAttribute('data-price'));
-                const planName = card.getAttribute('data-name');
-                const originalHTML = card.innerHTML;
-                
-                card.innerHTML = `<div style="color: #3b82f6; font-weight: bold; padding: 10px 0;">Processing...</div>`;
-                
-                try {
-                    // 1. Update Plan in DB
-                    await supabase.from('users').update({ plan_id: planId }).eq('id', globalUserId);
-
-                    // 2. Open Razorpay Modal
-                    const options = {
-                        "key": RAZORPAY_TEST_KEY,
-                        "amount": planPrice * 100, // Amount in paise
-                        "currency": "INR",
-                        "name": "Supremacy Edu",
-                        "description": `${planName} Access`,
-                        "payment_capture": 1, // <--- CRITICAL: Do not auto-capture. Let Webhook do it!
-                        "prefill": {
-                            "name": document.getElementById('regName').value,
-                            "email": document.getElementById('regEmail').value,
-                            "contact": document.getElementById('regPhone').value
-                        },
-                        "notes": {
-                            "supabase_user_id": globalUserId // <--- CRITICAL: Hidden ID for webhook
-                        },
-                        "theme": { "color": "#2563eb" },
-                        "handler": function (response) {
-        setTimeout(() => {
-            window.location.href = "dashboard.html";
-        }, 2000); 
-    },
-    
-    "modal": {
-        "ondismiss": function() {
-            card.innerHTML = originalHTML;
-        }
-    }
-};
-
-                    const rzp = new window.Razorpay(options);
-                    rzp.on('payment.failed', function (response){
-                        errorMsg.innerText = response.error.description;
-                        errorMsg.style.display = 'block';
-                        card.innerHTML = originalHTML;
-                    });
-                    rzp.open();
-
-                } catch (err) {
-                    errorMsg.innerText = err.message;
-                    errorMsg.style.display = 'block';
-                    card.innerHTML = originalHTML;
-                }
-            });
-        });
-
-        // --- UI Logic: Back Button & Form Validation ---
-        backBtn.addEventListener('click', () => {
-            step2.classList.add('hidden-step');
-            step1.classList.remove('hidden-step');
-            proceedBtn.innerText = "Proceed to Choose Plan";
-            proceedBtn.disabled = false;
-        });
-
-        const checkValidity = () => {
-            const isValid = inputs.every(input => 
-                input.type === 'checkbox' ? input.checked : input.value.trim() !== ''
-            );
-            proceedBtn.disabled = !isValid;
-            proceedBtn.classList.toggle('btn-locked', !isValid);
-        };
-
-        inputs.forEach(input => {
-            input.addEventListener('input', checkValidity);
-            input.addEventListener('change', checkValidity);
         });
     </script>
 </body>
