@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Admin - Restricted Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+    <style>
+        body { background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        
+        /* THE LOCK SCREEN OVERLAY */
+        #admin-lock-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background: #0f172a; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .admin-badge { display: inline-block; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+        .lock-card { background: #1e293b; padding: 40px; border-radius: 12px; border-top: 4px solid #ef4444; width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.8); text-align: center; }
+        
+        /* THE DASHBOARD (Hidden by Default) */
+        #admin-dashboard { display: none; }
+        .admin-navbar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 30px; border-bottom: 1px solid var(--border-color); }
+        .admin-navbar h2 { margin: 0; color: #ef4444; font-size: 20px; letter-spacing: 1px; }
+        
+        .admin-container { padding: 40px; max-width: 1400px; margin: 0 auto; }
+        .header-section { margin-bottom: 30px; }
+        .header-section h1 { font-size: 28px; margin: 0 0 10px 0; }
+        
+        /* Table Styles */
+        .table-wrapper { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: rgba(0, 0, 0, 0.3); padding: 15px; font-size: 13px; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+        td { padding: 15px; font-size: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }
+        tr:hover { background: rgba(59, 130, 246, 0.05); }
+        
+        /* Badges & Buttons */
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-paid { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-review { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-approved { background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+        .badge-rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        
+        .doc-link { display: inline-block; background: #334155; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; margin: 2px; border: 1px solid #475569; }
+        .doc-link:hover { background: var(--primary); border-color: var(--primary); }
+        
+        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; margin-right: 5px; }
+        .btn-approve { background: #10b981; color: white; }
+        .btn-reject { background: transparent; color: #ef4444; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+    <div id="admin-lock-screen">
+        <div class="lock-card">
+            <div class="admin-badge">Restricted Access</div>
+            <h2 style="color: white; margin-top: 0; margin-bottom: 5px;">Admin Gateway</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Enter master credentials to proceed.</p>
+
+            <form id="admin-login-form">
+                <div style="margin-bottom: 15px;"><input type="email" id="admin-email" placeholder="Admin Email" required style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid #334155; color: white;"></div>
+                <div style="margin-bottom: 15px;"><input type="password" id="admin-pass" placeholder="Master Password" required style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid #334155; color: white;"></div>
+                
+                <button type="submit" id="login-btn" style="width: 100%; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Initialize Secure Link</button>
+            </form>
+
+            <div id="login-msg" style="margin-top: 15px; font-size: 13px; font-weight: bold; display: none;"></div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard">
+        <nav class="admin-navbar">
+            <h2>Supremacy Edu | Admin</h2>
+            <button class="action-btn btn-reject" onclick="logoutAdmin()">End Session</button>
+        </nav>
+
+        <div class="admin-container">
+            <div class="header-section">
+                <h1>RDE Candidates Pipeline</h1>
+                <p style="color: var(--text-muted);">Manage applications, verify payments, and review documents.</p>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="applications-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Contact</th>
+                            <th>Referred By</th>
+                            <th>Docs</th>
+                            <th>Payment</th>
+                            <th>RDE Code</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="8" style="text-align: center; padding: 40px; color: #38bdf8;">Loading secure data vault...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        // Check Session on Page Load
+        async function checkInitialSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                verifyAdminAndLoad(session.user.id);
+            }
+            // If no session, the lock screen just stays visible naturally.
+        }
+
+        // Handle the Login Form
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('login-msg');
+            const btn = document.getElementById('login-btn');
+            
+            msg.style.display = "block"; msg.style.color = "#38bdf8"; msg.innerText = "Authenticating...";
+            btn.disabled = true;
+
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-pass').value;
+
+            try {
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+                if (authError) throw new Error("Invalid credentials.");
+
+                verifyAdminAndLoad(authData.user.id);
+
+            } catch (err) {
+                msg.style.color = "#ef4444"; msg.innerText = err.message;
+                btn.disabled = false;
+            }
+        });
+
+        // The Gatekeeper Function
+        async function verifyAdminAndLoad(userId) {
+            const msg = document.getElementById('login-msg');
+            
+            try {
+                // Check if they are in the VIP platform_admins table
+                const { data: adminData, error } = await supabase.from('platform_admins').select('id').eq('id', userId).maybeSingle();
+                
+                if (!adminData) {
+                    await supabase.auth.signOut();
+                    throw new Error("ACCESS DENIED: Administrative privileges not found.");
+                }
+
+                // If verified, lower the wall!
+                document.getElementById('admin-lock-screen').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                
+                fetchApplications();
+
+            } catch (err) {
+                if(msg) { msg.style.display = "block"; msg.style.color = "#ef4444"; msg.innerText = err.message; }
+                document.getElementById('login-btn').disabled = false;
+            }
+        }
+
+        // Fetch Data for the Table
+        async function fetchApplications() {
+            const { data: apps, error } = await supabase.from('hiring_applications').select('*').order('created_at', { ascending: false });
+
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            if (error || !apps) {
+                tbody.innerHTML = `<tr><td colspan="8" style="color:#ef4444; text-align:center;">Failed to load data.</td></tr>`;
+                return;
+            }
+
+            if (apps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 30px; color: #94a3b8;">No applications found in the vault.</td></tr>`;
+                return;
+            }
+
+            apps.forEach(app => {
+                const payBadgeClass = app.payment_status === 'paid' ? 'badge-paid' : 'badge-pending';
+                let statusBadgeClass = 'badge-pending';
+                if (app.application_status === 'under_review') statusBadgeClass = 'badge-review';
+                if (app.application_status === 'approved') statusBadgeClass = 'badge-approved';
+                if (app.application_status === 'rejected') statusBadgeClass = 'badge-rejected';
+
+                const docLinks = [];
+                if (app.id_proof_url) docLinks.push(`<a href="${app.id_proof_url}" target="_blank" class="doc-link">ID</a>`);
+                if (app.address_proof_url) docLinks.push(`<a href="${app.address_proof_url}" target="_blank" class="doc-link">Add.</a>`);
+                if (app.education_doc_url) docLinks.push(`<a href="${app.education_doc_url}" target="_blank" class="doc-link">Edu</a>`);
+                if (app.resume_url) docLinks.push(`<a href="${app.resume_url}" target="_blank" class="doc-link">CV</a>`);
+                if (app.photo_url) docLinks.push(`<a href="${app.photo_url}" target="_blank" class="doc-link">Img</a>`);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${app.full_name}</strong><br><span style="font-size:12px; color:#94a3b8;">${new Date(app.created_at).toLocaleDateString()}</span></td>
+                    <td>${app.email}<br><span style="font-size:12px; color:#94a3b8;">${app.phone}</span></td>
+                    <td><strong style="color: #38bdf8;">${app.referred_by_code || 'Direct'}</strong></td>
+                    <td>${docLinks.join('') || '<span style="color:#64748b; font-size:12px;">No docs</span>'}</td>
+                    <td><span class="badge ${payBadgeClass}">${app.payment_status.toUpperCase()}</span></td>
+                    <td><strong style="color: #34d399; letter-spacing: 1px;">${app.generated_rde_code || '---'}</strong></td>
+                    <td><span class="badge ${statusBadgeClass}">${app.application_status.replace('_', ' ').toUpperCase()}</span></td>
+                    <td>
+                        ${app.application_status !== 'approved' ? `<button class="action-btn btn-approve" onclick="updateStatus('${app.id}', 'approved')">Approve</button>` : ''}
+                        ${app.application_status !== 'rejected' ? `<button class="action-btn btn-reject" onclick="updateStatus('${app.id}', 'rejected')">Reject</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.updateStatus = async (userId, newStatus) => {
+            if (!confirm(`Mark application as ${newStatus.toUpperCase()}?`)) return;
+            await supabase.from('hiring_applications').update({ application_status: newStatus }).eq('id', userId);
+            fetchApplications();
+        };
+
+        window.logoutAdmin = async () => {
+            await supabase.auth.signOut();
+            window.location.reload(); // Reloads page, instantly dropping the lock screen wall back down
+        };
+
+        checkInitialSession();
+    </script>
+</body>
+</html>
