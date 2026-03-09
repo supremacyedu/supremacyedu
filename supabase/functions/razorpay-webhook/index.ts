@@ -1,32 +1,70 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts"
+// Initialize Supabase client with the Master Service Key (bypasses RLS)
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
-console.log("Hello from Functions!")
+serve(async (req) => {
+  try {
+    const bodyText = await req.text();
+    const event = JSON.parse(bodyText);
 
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+    // Only process successful payments
+    if (event.event === 'payment.captured') {
+      const paymentId = event.payload.payment.entity.id;
+      
+      // Extract the hidden notes we sent from the frontend
+      const userId = event.payload.payment.entity.notes.user_id; 
+      const paymentType = event.payload.payment.entity.notes.payment_type; 
+
+      if (!userId || !paymentType) {
+        throw new Error("Missing user_id or payment_type in Razorpay notes");
+      }
+
+      // ==========================================
+      // ROUTE 1: RDE Candidate Payment
+      // ==========================================
+      if (paymentType === 'rde_activation') {
+        const { data: newRdeCode } = await supabase.rpc('generate_secure_rde_code');
+        
+        await supabase.from('hiring_applications').update({
+            payment_status: 'paid',
+            application_status: 'under_review',
+            razorpay_payment_id: paymentId,
+            generated_rde_code: newRdeCode
+        }).eq('id', userId);
+      }
+      
+      // ==========================================
+      // ROUTE 2: Referrer Subscription Payment
+      // ==========================================
+      else if (paymentType === 'referrer_activation') {
+        const { data: newRefCode } = await supabase.rpc('generate_secure_ref_code');
+        
+        await supabase.from('referrers').update({
+            payment_status: 'paid',
+            razorpay_payment_id: paymentId,
+            personal_code: newRefCode
+        }).eq('id', userId);
+      }
+
+      else {
+         console.log("Unknown payment type:", paymentType);
+      }
+    }
+
+    return new Response(JSON.stringify({ status: "success" }), { 
+      headers: { "Content-Type": "application/json" },
+      status: 200 
+    });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { 
+      headers: { "Content-Type": "application/json" },
+      status: 400 
+    });
   }
-
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
 })
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/razorpay-webhook' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/

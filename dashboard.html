@@ -168,7 +168,7 @@
                     return;
                 }
 
-                const { data: userProfile, error: profileError } = await supabase.from('users').select('*, plans(*)').eq('id', session.user.id).single();
+                const { data: userProfile, error: profileError } = await supabase.from('referrers').select('*, plans(*)').eq('id', session.user.id).single();
                 
                 if (profileError || !userProfile) {
                     window.location.replace('login.html');
@@ -257,7 +257,7 @@
             }
 
             try {
-                const { error } = await supabase.from('users').update({
+                const { error } = await supabase.from('referrers').update({
                     payout_amount: payoutAmount,
                     payout_upi: upiData,
                     payout_bank: bankData,
@@ -359,7 +359,7 @@
                             nextLetter = String.fromCharCode(currentLetter.charCodeAt(0) + 1); 
                         }
 
-                        const { error: userError } = await supabase.from('users').update({
+                        const { error: userError } = await supabase.from('referrers').update({
                             payment_status: 'paid',
                             plan_id: planId,
                             referral_code: newReferralCode,
