@@ -197,7 +197,7 @@
             if (!currentUserProfile || !currentUserProfile.referral_code) return;
 
             const { count, error } = await supabase
-                .from('users')
+                .from('referrers')
                 .select('*', { count: 'exact', head: true })
                 .eq('rde_code_used', currentUserProfile.referral_code);
             

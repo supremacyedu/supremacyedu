@@ -54,7 +54,7 @@
                 if (authError) throw new Error("Invalid email or password.");
 
                 const { data: profile, error: profileError } = await supabase
-                    .from('users')
+                    .from('referrers')
                     .select('id, payment_status')
                     .eq('id', authData.user.id)
                     .single();
