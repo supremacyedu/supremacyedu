@@ -425,7 +425,9 @@
             doc.setFontSize(10); doc.setTextColor(100); doc.text("Terms & Conditions:", 20, 130);
             doc.text("1. This receipt is computer generated and requires no physical signature.", 20, 137);
             doc.text("2. Refund policies apply strictly based on the selected plan tier.", 20, 144);
-            doc.text("3. For support, contact billing@supremacyedu.com.", 20, 151);
+            doc.text("3. This Fee is tax inclusive", 20, 151);
+            doc.text("4. This Fee is valid for 1 complete year from the date of joining.", 20, 158);
+            doc.text("3. For support, contact support@supremacyedu.com.", 20, 165);
 
             doc.save(`SupremacyEdu_Receipt_${currentUserProfile.referral_code}.pdf`);
         };
