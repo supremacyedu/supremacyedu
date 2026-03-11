@@ -180,10 +180,13 @@
                 if (profileError || !userProfile) {
                     console.error("Profile Fetch Error:", profileError);
                     alert("Database error fetching profile! Press F12 and check the Console.");
-                    return; // Notice we removed the redirect to login here so you don't get trapped in a loop
+                    return; 
                 }
 
                 currentUserProfile = userProfile;
+                
+                // NEW: Grab the email from the secure auth session!
+                currentUserProfile.email = session.user.email; 
 
                 // FIX 2: Ensure we are checking for 'unpaid' like we fixed earlier
                 if (userProfile.payment_status === 'unpaid') {
@@ -322,6 +325,7 @@ window.initiatePayment = async (planId, price, planName) => {
         };
 
         // --- 5. Generate Receipt ---
+        // --- 5. Generate Receipt ---
         window.downloadReceipt = () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -330,27 +334,32 @@ window.initiatePayment = async (planId, price, planName) => {
             doc.setFontSize(14); doc.setTextColor(100); doc.text("Official Payment Receipt", 20, 30); doc.setDrawColor(200); doc.line(20, 35, 190, 35);
             doc.setFontSize(12); doc.setTextColor(0); doc.setFont("helvetica", "normal");
             
-            const dateStr = new Date().toLocaleDateString();
-            doc.text(`Date: ${dateStr}`, 20, 45);
+            // ADDED: toLocaleString() pulls both the Date AND the exact Time
+            const dateTimeStr = new Date().toLocaleString('en-IN'); 
+            doc.text(`Date & Time: ${dateTimeStr}`, 20, 45);
             doc.text(`Transaction ID: ${currentUserProfile.razorpay_payment_id || 'N/A'}`, 20, 52);
             doc.text(`Name: ${currentUserProfile.name}`, 20, 59);
-            doc.text(`Email: ${currentUserProfile.email}`, 20, 66);
+            doc.text(`Email: ${currentUserProfile.email || 'N/A'}`, 20, 66);
             doc.text(`Referral Code Assigned: ${currentUserProfile.referral_code}`, 20, 73);
 
             doc.setFillColor(240, 240, 240); doc.rect(20, 85, 170, 10, 'F');
             doc.setFont("helvetica", "bold"); doc.text("Description", 25, 92); doc.text("Amount", 160, 92);
-            doc.setFont("helvetica", "normal"); doc.text(`Platform Activation: ${currentPlanData.name}`, 25, 105); doc.text(`INR ${currentPlanData.price}.00`, 160, 105); doc.line(20, 115, 190, 115);
+            
+            // ADDED: This regex automatically deletes any rogue "1" or "¹" at the start of the plan name
+            let cleanPlanName = currentPlanData.name.replace(/^[¹1]\s*/, '');
+            
+            doc.setFont("helvetica", "normal"); doc.text(`Platform Activation: ${cleanPlanName}`, 25, 105); doc.text(`INR ${currentPlanData.price}.00`, 160, 105); doc.line(20, 115, 190, 115);
 
             doc.setFontSize(10); doc.setTextColor(100); doc.text("Terms & Conditions:", 20, 130);
             doc.text("1. This receipt is computer generated and requires no physical signature.", 20, 137);
             doc.text("2. Refund policies apply strictly based on the selected plan tier.", 20, 144);
-            doc.text("3. This Fee is tax inclusive", 20, 151);
+            doc.text("3. This Fee is tax inclusive.", 20, 151);
             doc.text("4. This Fee is valid for 1 complete year from the date of joining.", 20, 158);
-            doc.text("3. For support, contact support@supremacyedu.com.", 20, 165);
+            // FIXED: Changed the second "3." to a "5."
+            doc.text("5. For support, contact support@supremacyedu.com.", 20, 165); 
 
             doc.save(`SupremacyEdu_Receipt_${currentUserProfile.referral_code}.pdf`);
         };
-
         // --- 6. Logout ---
         window.logout = async () => { await supabase.auth.signOut(); window.location.replace('login.html'); };
 
