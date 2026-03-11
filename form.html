@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+ <link rel="icon" type="image/png" href="src/logo.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enrollment Portal</title>
+<link rel="stylesheet" href="form.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="app-wrapper">
+
+  <div class="form-card">
+
+    <div class="brand">
+      <h1>Enrollment Portal</h1>
+      <p>Secure plan selection & payment processing</p>
+    </div>
+
+    <form id="enrollmentForm">
+
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" id="full-name" placeholder="Enter your full name" required>
+      </div>
+
+      <div class="input-group">
+        <label>WhatsApp Number</label>
+        <input type="tel" id="contact2" placeholder="10-digit mobile number" required>
+      </div>
+
+      <div class="input-group">
+        <label>Referrer Code</label>
+        <input type="text" id="rde-code" placeholder="Enter referrer ID" required>
+      </div>
+
+      <div class="input-group">
+        <label>Select Plan</label>
+        <select id="kit-fee" required>
+          <option value="120">Starter — ₹120</option>
+          <option value="300">Basic — ₹300</option>
+          <option value="600">Growth — ₹600</option>
+          <option value="1200">Pro — ₹1200</option>
+          <option value="2400">Premium — ₹2400</option>
+          <option value="6000">Elite — ₹6000</option>
+          <option value="12000">Enterprise — ₹12000</option>
+        </select>
+      </div>
+
+      <button type="submit" class="primary-btn">
+        Continue to Secure Payment →
+      </button>
+
+      <div class="secure-note">
+        🔒 Payments secured via Razorpay
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+function validateForm(data) {
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    const rdeRegex = /^[A-Za-z0-9]+$/;
+
+    if (!data.fullName || data.fullName.length < 3)
+        return "Full name must be at least 3 characters.";
+
+    if (!phoneRegex.test(data.contact2))
+        return "Enter valid 10-digit Indian mobile number.";
+
+    if (!rdeRegex.test(data.rdeCode))
+        return "Invalid Referrer Code format.";
+
+    if (!data.kitFee)
+        return "Please select a plan.";
+
+    return null;
+}
+
+document.getElementById("enrollmentForm").addEventListener("submit", async function(e) {
+
+    e.preventDefault();
+
+    const formData = {
+        fullName: document.getElementById("full-name").value.trim(),
+        contact2: document.getElementById("contact2").value.trim(),
+        rdeCode: document.getElementById("rde-code").value.trim(),
+        kitFee: document.getElementById("kit-fee").value
+    };
+
+    const error = validateForm(formData);
+
+    if (error) {
+        alert(error);
+        return;
+    }
+
+    try {
+
+        const response = await fetch("http://localhost:5000/create-order", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "x-api-key": "YOUR_SECRET_FRONTEND_KEY"
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const order = await response.json();
+
+        if (!order.id) {
+            alert("Order creation failed.");
+            return;
+        }
+
+        const options = {
+            key: "YOUR_RAZORPAY_KEY_ID",
+            amount: order.amount,
+            currency: order.currency,
+            name: "Your Organization",
+            description: "Kit Fee Payment",
+            order_id: order.id,
+            handler: function () {
+                alert("Payment initiated. Receipt will be sent after confirmation.");
+            }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+    } catch (err) {
+        alert("Something went wrong.");
+    }
+
+});
+</script>
+
+</body>
+</html>
