@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - Careers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+    <style>
+        .career-card { background: var(--bg-card); padding: 40px; border-radius: 24px; border: 1px solid var(--border-color); width: 100%; max-width: 450px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .career-btn { display: block; width: 100%; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; text-decoration: none; margin-bottom: 20px; transition: var(--transition); }
+        
+        /* Active RDE Button */
+        .btn-rde { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; border: none; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); }
+        .btn-rde:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+        
+        /* Active Teacher Button */
+        .btn-teacher { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid var(--border-color); }
+        .btn-teacher:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
+    </style>
+</head>
+<body class="auth-page">
+
+    <div class="career-card">
+        <a href="index.html" class="back-btn" style="margin-bottom: 25px; align-self: flex-start;">&larr; Back to Website</a>
+        
+        <h2 style="color: white; margin-bottom: 10px;">Join the Team</h2>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Select your career path at Supremacy Edu.</p>
+
+        <a href="applicant-signup.html" class="career-btn btn-rde">
+            Apply as RDE (Sales & Operations)
+        </a>
+
+        <a href="teacher-application.html" class="career-btn btn-teacher">
+            Apply as Faculty / Teacher
+        </a>
+    </div>
+
+</body>
+</html>

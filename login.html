@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - Referrer Login</title>
+    <link rel="icon" type="image/png" href="src/logo.png">
+    <meta name="Join Supremacy Edu's referral program and earn payouts by helping students find the best educational institute" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+
+    <div class="login-card">
+        <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
+
+        <h2>Referrer Login</h2>
+        
+        <div id="referrer-fields" style="margin-top: 20px;">
+            <div class="input-group"><input type="email" id="ref-email" placeholder="Email Address"></div>
+            <div class="input-group"><input type="password" id="ref-password" placeholder="Password"></div>
+        </div>
+
+        <button type="button" class="primary-btn" onclick="handleLogin(event)">Login</button>
+        
+        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
+        
+        <div class="login-link" style="margin-top: 20px;">
+            Don't have an account? <a href="signup.html">Sign up here</a>
+            <br><br>
+            Are you an RDE? <a href="login-rde.html">Login here</a>
+        </div>
+    </div>
+
+    <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co'; 
+    const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Grab the button and attach the listener directly
+    const loginButton = document.querySelector('.primary-btn');
+    
+    loginButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const msg = document.getElementById('message');
+        msg.style.display = "block";
+        msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+        msg.style.color = "#38bdf8"; 
+        msg.innerText = "Authenticating...";
+
+        try {
+            const email = document.getElementById('ref-email').value.trim();
+            const password = document.getElementById('ref-password').value;
+
+            if (!email || !password) throw new Error("Please enter your email and password.");
+
+            // 1. Sign in the user via Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
+                email, 
+                password 
+            });
+            
+            if (authError) throw new Error("Invalid email or password.");
+
+            // 2. Fetch the profile from the 'referrers' table
+            const { data: profile, error: profileError } = await supabase
+                .from('referrers')
+                .select('id, payment_status')
+                .eq('id', authData.user.id)
+                .single();
+
+            if (profileError) {
+                console.error("Database Error:", profileError); 
+                throw new Error("Profile sync failed. Please contact support.");
+            }
+
+            // 3. Success UI Update
+            msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msg.style.color = "#4ade80"; 
+            msg.innerText = "Login successful! Redirecting...";
+
+            // 4. Secure Routing based on payment status
+            setTimeout(() => {
+                if (profile.payment_status === 'paid') {
+                    window.location.href = "dashboard.html"; 
+                } else {
+                    window.location.href = "dashboard.html"; 
+                }
+            }, 1000);
+
+        } catch (err) {
+            msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
+            msg.style.color = "#f87171"; 
+            msg.innerText = err.message;
+        }
+    });
+</script>
+</body>
+</html>

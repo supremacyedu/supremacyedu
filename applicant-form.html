@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Careers - Document Submission</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+    <style>
+        .form-card {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            margin: 40px 0;
+        }
+        .file-upload-label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .file-help-text {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            color: var(--text-main);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        input[type="file"]::file-selector-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 15px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: var(--primary-hover);
+        }
+        .section-title {
+            color: #38bdf8;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body class="auth-page">
+
+    <div class="form-card">
+        <h2 style="text-align: center; color: white;">Complete Your Profile</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">Upload your official documents to proceed to the dashboard.</p>
+
+        <form id="doc-upload-form">
+            
+            <h3 class="section-title">1. Payment Details (For your salary/commissions)</h3>
+            <div class="input-group">
+                <input type="text" id="bank-upi" placeholder="Enter Bank Account Number & IFSC  -OR-  UPI ID" required>
+            </div>
+
+            <h3 class="section-title">2. Mandatory Documents</h3>
+            
+            <label class="file-upload-label">Identity Proof (Aadhar/PAN)</label>
+            <span class="file-help-text">Max 5MB. PDF, JPG, or PNG.</span>
+            <input type="file" id="doc-id" accept=".pdf,.jpg,.jpeg,.png" required>
+
+            <label class="file-upload-label">Address Proof (Voter ID/Passport/Aadhar)</label>
+            <span class="file-help-text">Max 5MB. PDF, JPG, or PNG.</span>
+            <input type="file" id="doc-address" accept=".pdf,.jpg,.jpeg,.png" required>
+
+            <label class="file-upload-label">Highest Education Certificate</label>
+            <span class="file-help-text">Max 5MB. PDF or Image.</span>
+            <input type="file" id="doc-edu" accept=".pdf,.jpg,.jpeg,.png" required>
+
+            <label class="file-upload-label">Updated CV / Resume</label>
+            <span class="file-help-text">Max 5MB. PDF format.</span>
+            <input type="file" id="doc-resume" accept=".pdf,.doc,.docx" required>
+
+            <label class="file-upload-label">Passport Size Professional Photo</label>
+            <span class="file-help-text">Clear face, plain background. JPG or PNG only.</span>
+            <input type="file" id="doc-photo" accept=".jpg,.jpeg,.png" required>
+
+            <button type="submit" class="primary-btn" id="submit-btn" style="margin-top: 20px;">Securely Upload & Continue</button>
+        </form>
+
+        <div id="message" style="margin-top: 20px; text-align: center; font-weight: bold; padding: 15px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        let currentUser = null;
+
+        // 1. Authenticate the user before they can see the form
+        async function checkSession() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error || !session) {
+                window.location.replace('applicant-login.html');
+            } else {
+                currentUser = session.user;
+            }
+        }
+        checkSession();
+
+        // Helper function to upload a file and return its storage path
+        async function uploadDocument(file, folderName, documentType) {
+            // Creates a path like:  USER_ID/id_proof_16789012.pdf
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${documentType}_${Date.now()}.${fileExt}`;
+            const filePath = `${folderName}/${fileName}`;
+
+            const { data, error } = await supabase.storage
+                .from('hiring_documents')
+                .upload(filePath, file);
+
+            if (error) throw new Error(`Failed to upload ${documentType}: ${error.message}`);
+            return filePath;
+        }
+
+        document.getElementById('doc-upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('message');
+            const btn = document.getElementById('submit-btn');
+            
+            msg.style.display = "block";
+            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+            msg.style.color = "#38bdf8"; 
+            msg.innerText = "Encrypting and uploading 5 documents... Please do not close this page.";
+            btn.disabled = true;
+
+            const bankUpi = document.getElementById('bank-upi').value.trim();
+            
+            // Get all files
+            const idFile = document.getElementById('doc-id').files[0];
+            const addressFile = document.getElementById('doc-address').files[0];
+            const eduFile = document.getElementById('doc-edu').files[0];
+            const resumeFile = document.getElementById('doc-resume').files[0];
+            const photoFile = document.getElementById('doc-photo').files[0];
+
+            try {
+                // 2. Upload all files to the user's dedicated, secure folder
+                const folderId = currentUser.id;
+                
+                // We run these uploads sequentially to ensure stability
+                const idPath = await uploadDocument(idFile, folderId, 'id_proof');
+                const addressPath = await uploadDocument(addressFile, folderId, 'address_proof');
+                const eduPath = await uploadDocument(eduFile, folderId, 'education_doc');
+                const resumePath = await uploadDocument(resumeFile, folderId, 'resume');
+                const photoPath = await uploadDocument(photoFile, folderId, 'photo');
+
+                // 3. Update the database row with the file paths and bank details
+                const { error: dbErr } = await supabase.from('hiring_applications')
+                    .update({
+                        bank_or_upi: bankUpi,
+                        id_proof_url: idPath,
+                        address_proof_url: addressPath,
+                        education_doc_url: eduPath,
+                        resume_url: resumePath,
+                        photo_url: photoPath,
+                        application_status: 'documents_submitted' // Advance their status
+                    })
+                    .eq('id', currentUser.id);
+
+                if (dbErr) throw dbErr;
+
+                // 4. Success! Send them to the Activation Payment gateway (Milestone 5)
+                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+                msg.style.color = "#4ade80";
+                msg.innerText = "Documents secured successfully! Redirecting to Dashboard Activation...";
+                
+                setTimeout(() => { window.location.href = "applicant-dashboard.html"; }, 2000);
+
+            } catch (err) {
+                msg.style.backgroundColor = "var(--error-bg)";
+                msg.style.color = "var(--error-text)"; 
+                msg.innerText = err.message;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Careers - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+
+    <div class="login-card">
+        <a href="career.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Careers</a>
+
+        <h2>Candidate Login</h2>
+        <p>Access your application portal.</p>
+
+        <form id="candidate-login-form">
+            <div class="input-group"><input type="email" id="log-email" placeholder="Email Address" required></div>
+            <div class="input-group"><input type="password" id="log-pass" placeholder="Password" required></div>
+            
+            <button type="submit" class="primary-btn" id="login-btn">Log In</button>
+        </form>
+
+        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
+        
+        <div class="login-link">
+            New candidate? <a href="applicant-signup.html">Register here</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        document.getElementById('candidate-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('message');
+            const btn = document.getElementById('login-btn');
+            
+            msg.style.display = "block";
+            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+            msg.style.color = "#38bdf8"; 
+            msg.innerText = "Authenticating...";
+            btn.disabled = true;
+
+            const email = document.getElementById('log-email').value.trim();
+            const password = document.getElementById('log-pass').value;
+
+            try {
+                // 1. Authenticate with the master Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+                if (authError) throw new Error("Invalid email or password.");
+
+                const userId = authData.user.id;
+
+                // 2. Check if they already have an application profile
+                let { data: appProfile, error: profileError } = await supabase
+                    .from('hiring_applications')
+                    .select('*')
+                    .eq('id', userId)
+                    .maybeSingle(); // maybeSingle doesn't throw an error if no row is found
+
+                // 3. The "Smart Bridge": If they are an existing student but new applicant, create their profile!
+                if (!appProfile) {
+                    msg.innerText = "Setting up your application profile...";
+                    
+                    // Fetch their name/phone from their student profile
+                    const { data: studentProfile } = await supabase.from('referrers').select('name, phone').eq('id', userId).single();
+                    
+                    const { error: insertErr } = await supabase.from('hiring_applications').insert([{
+                        id: userId,
+                        full_name: studentProfile?.name || "Candidate",
+                        phone: studentProfile?.phone || "Update required",
+                        email: email,
+                        payment_status: 'pending'
+                    }]);
+
+                    if (insertErr) throw insertErr;
+                    
+                    // Route to form to upload documents
+                    window.location.href = "applicant-form.html";
+                    return;
+                }
+
+                // 4. Routing Logic: Where should they go based on their progress?
+                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+                msg.style.color = "#4ade80"; 
+                msg.innerText = "Login successful! Routing...";
+
+                if (appProfile.application_status === 'under_review' || !appProfile.id_proof_url) {
+                    // They haven't uploaded documents yet
+                    setTimeout(() => { window.location.href = "applicant-form.html"; }, 1000);
+                } else {
+                    // Documents uploaded, send them to Dashboard (Milestone 5)
+                    setTimeout(() => { window.location.href = "applicant-dashboard.html"; }, 1000);
+                }
+
+            } catch (err) {
+                msg.style.backgroundColor = "var(--error-bg)";
+                msg.style.color = "var(--error-text)"; 
+                msg.innerText = err.message;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

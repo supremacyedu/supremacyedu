@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Careers - Candidate Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+
+    <div class="signup-card" id="main-card">
+        <a href="career.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Careers</a>
+
+        <h2>Candidate Portal</h2>
+        <p>Register to begin your application process.</p>
+
+        <form id="details-form">
+            <div class="input-group"><input type="text" id="cand-name" placeholder="Full Name (As per ID Proof)" required></div>
+            <div class="input-group"><input type="tel" id="cand-phone" placeholder="Phone Number" required></div>
+            <div class="input-group"><input type="email" id="cand-email" placeholder="Email Address" required></div>
+            <div class="input-group"><input type="text" id="cand-referrer" placeholder="Referrer's RDE Code" style="text-transform: uppercase;" required></div>
+            <div class="input-group"><input type="password" id="cand-pass" placeholder="Create Password" required></div>
+            
+            <button type="submit" class="primary-btn" id="send-otp-btn">Send Verification OTP</button>
+        </form>
+
+        <form id="otp-form" style="display: none;">
+            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <p style="margin: 0; color: #38bdf8; font-size: 14px; font-weight: bold;">We sent an 8-digit code to your email.</p>
+                <span id="display-email" style="font-size: 12px; color: var(--text-muted);"></span>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="email-otp" placeholder="Enter 8-Digit OTP" required style="text-align: center; font-size: 20px; letter-spacing: 5px; font-weight: bold;" maxlength="8">
+            </div>
+            
+            <button type="submit" class="primary-btn" id="verify-btn" style="background: #10b981; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">Verify & Create Account</button>
+            <button type="button" class="btn-outline" onclick="window.location.reload()" style="width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px;">Cancel & Go Back</button>
+        </form>
+
+        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
+        
+        <div class="login-link" id="login-footer">
+            Already registered? <a href="applicant-login.html">Log in here</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        const msgBox = document.getElementById('message');
+        
+        function showMessage(text, type) {
+            msgBox.style.display = "block";
+            if (type === 'error') {
+                msgBox.style.backgroundColor = "var(--error-bg)";
+                msgBox.style.color = "var(--error-text)";
+            } else if (type === 'success') {
+                msgBox.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+                msgBox.style.color = "#4ade80";
+            } else {
+                msgBox.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+                msgBox.style.color = "#38bdf8";
+            }
+            msgBox.innerText = text;
+        }
+
+        // STEP 1: Process Details and Send OTP
+        document.getElementById('details-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('send-otp-btn');
+            showMessage("Sending secure OTP...", "info");
+            btn.disabled = true;
+
+            const email = document.getElementById('cand-email').value.trim();
+            const password = document.getElementById('cand-pass').value;
+
+            try {
+                // FIX 1: Wipe out any old test sessions so they don't block the new registration
+                await supabase.auth.signOut();
+
+                const { data, error } = await supabase.auth.signUp({ 
+                    email: email, 
+                    password: password 
+                });
+
+                if (error) throw error;
+
+                document.getElementById('details-form').style.display = 'none';
+                document.getElementById('login-footer').style.display = 'none';
+                document.getElementById('otp-form').style.display = 'block';
+                document.getElementById('display-email').innerText = email;
+                
+                msgBox.style.display = "none"; 
+
+            } catch (err) {
+                showMessage(err.message, "error");
+                btn.disabled = false;
+            }
+        });
+
+        // STEP 2: Verify OTP and Save to Database
+        document.getElementById('otp-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('verify-btn');
+            showMessage("Verifying code...", "info");
+            btn.disabled = true;
+
+            const email = document.getElementById('cand-email').value.trim();
+            const token = document.getElementById('email-otp').value.trim();
+            
+            const name = document.getElementById('cand-name').value.trim();
+            const phone = document.getElementById('cand-phone').value.trim();
+            const referrerCode = document.getElementById('cand-referrer').value.trim().toUpperCase() || null;
+
+            try {
+                const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+                    email: email,
+                    token: token,
+                    type: 'signup'
+                });
+
+                if (verifyError) throw verifyError;
+
+                // FIX 2: Manually force the browser to lock in the secure session BEFORE inserting
+                if (verifyData.session) {
+                    await supabase.auth.setSession({
+                        access_token: verifyData.session.access_token,
+                        refresh_token: verifyData.session.refresh_token
+                    });
+                }
+
+                // Now it's perfectly safe to insert!
+                const userId = verifyData.user.id;
+                const { error: insertErr } = await supabase.from('hiring_applications').insert([{
+                    id: userId,
+                    full_name: name,
+                    phone: phone,
+                    email: email,
+                    referred_by_code: referrerCode,
+                    payment_status: 'pending'
+                }]);
+
+                if (insertErr) throw insertErr;
+
+                showMessage("Verification successful! Redirecting to documents...", "success");
+                
+                setTimeout(() => { window.location.href = "applicant-form.html"; }, 1500);
+
+            } catch (err) {
+                showMessage(err.message, "error");
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Our Vision | Supremacy Edu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="src/logo.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            margin-bottom: 80px;
+        }
+        .about-text h2 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        .about-text p {
+            color: var(--text-light);
+            font-size: 1.05rem;
+            margin-bottom: 15px;
+        }
+        .about-image img {
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            height: auto;
+            border: 1px solid #e2e8f0;
+        }
+        @media (max-width: 768px) {
+            .about-grid { grid-template-columns: 1fr; gap: 30px; }
+            .reverse-mobile { grid-row-start: 1; }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="nav-brand">
+        <img src="src/logo_b.png" alt="Supremacy Edu logo">
+        <div class="site-title">
+            <span class="site-name">Supremacy Edu</span>
+            <span class="site-subtitle">Learn Beyond</span>
+        </div>
+    </div>
+    <div class="menu-toggle" id="menu-toggle">
+        <span></span><span></span><span></span>
+    </div>
+    <nav id="nav-menu">
+        <a href="index.html">Home</a>
+        <a href="courses.html">Programs</a>
+        <a href="about.html">Our Vision</a>
+        <a href="contact.html">Centers</a>
+        <div class="nav-actions">
+            <a href="login.html" class="link-login">Partner Login</a>
+            <a href="admission.html" class="btn-primary">Apply Now</a>
+        </div>
+    </nav>
+</header>
+
+<section class="hero" style="padding: 60px 5% 40px; border-radius: 0 0 20px 20px; margin-bottom: 60px;">
+    <div class="hero-content">
+        <h1 style="font-size: 2.5rem;">Our <span style="color: var(--accent);">Vision</span></h1>
+        <p style="margin-bottom: 0;">Building a foundation of academic excellence since 2011.</p>
+    </div>
+</section>
+
+<div class="section-container">
+    
+    <div class="about-grid">
+        <div class="about-text">
+            <h2>About Supremacy Edu</h2>
+            <p>
+                Supremacy was founded in 2011 with a concept to provide objective-centric coaching education in a different, innovative and affable learning environment in the challenging field of Boards and Competitive examinations such as IIT-JEE (Main & Advanced), MHT-CET, NEET, AIIMS, and JIPMER, CA Foundation, CA Intermediate, Management & Foundations.
+            </p>
+            <p>
+                Over Fifteen years of its inception, the institute has risen beyond expectations. The volume and quality of results have proven the success of its mission, with matchless growth in student enrollments and selections in Engineering, Medical, Accountancy & Management Colleges.
+            </p>
+        </div>
+        <div class="about-image">
+            <img src="src/about1.jpg" alt="Classroom at Supremacy Edu" onerror="this.src='https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop'">
+        </div>
+    </div>
+
+    <div class="about-grid">
+        <div class="about-image reverse-mobile">
+            <img src="src/about2.jpg" alt="Faculty and students" onerror="this.src='https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop'">
+        </div>
+        <div class="about-text">
+            <h2>Our Strength & Vision</h2>
+            <p>
+                Excellent course material, experienced faculty, and a committed management team have built Supremacy Edu into one of the most trusted institutions in the region.
+            </p>
+            <p>
+                Our focus remains on delivering academic excellence, structured preparation, and the highest level of student satisfaction while preparing learners for all major examinations.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<div class="section-container" style="text-align: center; margin-top: 20px;">
+    <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: var(--shadow-md); border: 1px solid #e2e8f0;">
+        <h3 style="font-size: 1.8rem; color: var(--primary); margin-bottom: 15px;">Ready to learn beyond?</h3>
+        <p style="color: var(--text-light); margin-bottom: 25px;">Join a community committed to your success.</p>
+        <a href="admission.html" class="btn-primary" style="font-size: 16px; padding: 14px 32px;">Apply Now</a>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-content">
+        <div class="footer-col">
+            <h4>Supremacy Edu</h4>
+            <p>Empowering students since 2011.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="courses.html">Courses</a></li>
+                <li><a href="about.html">About Us</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Contact</h4>
+            <ul>
+                <li>help@supremacyedu.com</li>
+                <li>+91 99203 52476</li>
+                <li>Mumbai, Maharashtra</li>
+            </ul>
+        </div>
+    </div>
+    <div class="copyright">
+        © 2026 Supremacy Edu Corp. | All Rights Reserved
+    </div>
+</footer>
+
+<script>
+    const menuToggle = document.getElementById('menu-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    menuToggle.addEventListener('click', () => { navMenu.classList.toggle('active'); });
+</script>
+
+</body>
+</html>

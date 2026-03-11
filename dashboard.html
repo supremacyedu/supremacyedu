@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - Referrer Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
+    <style>
+        /* --- Security: Hide page until Auth is verified --- */
+body { display: none; background-color: #0f172a; color: #f8fafc; font-family: Arial, sans-serif; margin: 0; overflow-x: hidden; }
+        /* --- Custom Dark Scrollbar for Modal --- */
+        .modal-content::-webkit-scrollbar { width: 8px; }
+        .modal-content::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
+        .modal-content::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+        .modal-content::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+        
+        body { background-color: #0f172a; color: #f8fafc; font-family: Arial, sans-serif; margin: 0; overflow-x: hidden; }
+        
+        .navbar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 30px; border-bottom: 1px solid #334155; }
+        .navbar h2 { margin: 0; color: #38bdf8; font-size: 20px; }
+        .nav-buttons { display: flex; gap: 15px; }
+        .btn { padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; font-size: 14px; }
+        .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
+        .btn-outline:hover { background: #38bdf8; color: #0f172a; }
+        .btn-danger { background: #ef4444; color: white; }
+        
+        #main-dashboard { padding: 40px; transition: filter 0.3s; }
+        .blurred { filter: blur(8px); pointer-events: none; user-select: none; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; width: 100%; max-width: 850px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        .modal-content h2 { color: #f8fafc; margin-top: 0; font-size: 22px; margin-bottom: 5px; }
+        .modal-content p { color: #94a3b8; margin-bottom: 25px; font-size: 14px; }
+
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 15px; text-align: left; }
+        .plan-card { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155; display: flex; flex-direction: column; transition: all 0.2s; }
+        .plan-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+        .plan-price { font-size: 22px; color: #38bdf8; font-weight: bold; margin-bottom: 8px; }
+        .badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-bottom: 10px; width: fit-content; text-transform: uppercase; }
+        .badge-non { background: #ef444420; color: #ef4444; border: 1px solid #ef444450; }
+        .badge-ref { background: #4ade8020; color: #4ade80; border: 1px solid #4ade8050; }
+        .plan-share { margin-bottom: 15px; color: #94a3b8; font-size: 12px; flex-grow: 1; line-height: 1.4; }
+        .buy-btn { background: #2563eb; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; font-size: 13px; }
+        .buy-btn:hover { background: #1d4ed8; }
+
+        #success-modal .modal-content { max-width: 450px; }
+        .ref-code-display { font-size: 32px; font-weight: bold; color: #4ade80; letter-spacing: 2px; margin: 15px 0; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px dashed #4ade80; }
+
+        .package-section-title { color: #f8fafc; font-size: 18px; margin: 25px 0 15px 0; text-align: left; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        
+        /* --- Dashboard Stats & Payout Modal CSS --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px; }
+        .stat-card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
+        .stat-card h3 { color: #94a3b8; margin-top: 0; font-size: 16px; margin-bottom: 10px; }
+        .stat-value { font-size: 36px; font-weight: bold; color: #f8fafc; }
+
+        .input-field { width: 100%; padding: 12px; margin-top: 8px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        .input-field:focus { outline: none; border-color: #38bdf8; }
+        .input-label { color: #94a3b8; font-size: 14px; text-align: left; display: block; margin-top: 10px; }
+        
+        /* --- Toggle Buttons --- */
+        .toggle-box { display: flex; background: #0f172a; border-radius: 8px; border: 1px solid #334155; margin-bottom: 20px; overflow: hidden; }
+        .toggle-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #94a3b8; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
+        .toggle-btn.active { background: #38bdf8; color: #0f172a; }
+        .hidden-form { display: none; }
+        .payout-section { text-align: left; margin-bottom: 25px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2>Supremacy Edu</h2>
+        <div class="nav-buttons">
+            <button id="nav-receipt-btn" class="btn btn-outline" style="display: none;" onclick="downloadReceipt()">Download Receipt</button>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div id="main-dashboard" class="blurred">
+        <h1>Referrer Dashboard</h1>
+        
+        <p style="font-size: 16px;">
+            Your Referral Code: <strong id="dash-ref-code" style="color: #38bdf8; font-size: 18px;">Locked</strong> &nbsp;|&nbsp; 
+            Plan: <strong id="dash-plan-name" style="color: #4ade80; font-size: 18px;">None</strong>
+        </p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>No. of Students</h3>
+                <div class="stat-value" id="dash-students">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Payouts</h3>
+                <div class="stat-value" id="dash-payouts">₹0</div>
+                <button class="btn btn-outline" style="margin-top: 20px; width: 100%;" onclick="openPayoutModal()">Request to Admin</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="payout-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <h2>Request Payout</h2>
+            <p>Select how you want to receive your commission.</p>
+            
+            <div class="toggle-box">
+                <button id="btn-upi" class="toggle-btn active" onclick="switchPayout('upi')">UPI ID</button>
+                <button id="btn-bank" class="toggle-btn" onclick="switchPayout('bank')">Bank Transfer</button>
+            </div>
+            
+            <div id="section-upi" class="payout-section">
+                <label class="input-label">Enter UPI ID</label>
+                <input type="text" id="upi-id" class="input-field" placeholder="e.g. yourname@bank">
+            </div>
+            
+            <div id="section-bank" class="payout-section hidden-form">
+                <label class="input-label">Account Holder Name</label>
+                <input type="text" id="bank-holder" class="input-field" placeholder="Name on account">
+
+                <label class="input-label">Account Number</label>
+                <input type="text" id="bank-acc" class="input-field" placeholder="Enter account number">
+
+                <label class="input-label">IFSC Code</label>
+                <input type="text" id="bank-ifsc" class="input-field" placeholder="e.g. SBIN0001234">
+
+                <label class="input-label">Bank Name</label>
+                <input type="text" id="bank-name" class="input-field" placeholder="e.g. State Bank of India">
+            </div>
+            
+            <button class="btn" style="width: 100%; background: #10b981; margin-bottom: 10px; padding: 12px;" onclick="submitPayoutRequest()">Submit to Admin</button>
+            <button class="btn btn-outline" style="width: 100%; border: none; color: #ef4444;" onclick="closePayoutModal()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="plan-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Select Your Package</h2>
+            <p>Activate your account to unlock your dashboard and generate your Referral ID.</p>
+            <div id="plans-container">
+                <span style="color: #38bdf8;">Loading packages from secure database...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color: #4ade80;">Payment Successful!</h2>
+            <p>Your account is activated. Here is your unique Referral Code:</p>
+            <div class="ref-code-display" id="display-ref-code">REF-XXXX</div>
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Share this code with students to start earning commissions.</p>
+            <button class="btn btn-outline" style="width: 100%; padding: 10px; margin-bottom: 10px;" onclick="downloadReceipt()">Download Payment Receipt</button>
+            <button class="btn" style="width: 100%; padding: 10px; background: #2563eb;" onclick="unlockDashboard()">Go to Dashboard</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        let currentUserProfile = null;
+        let currentPlanData = null; 
+
+        // --- 1. Security & Initialization ---
+        async function init() {
+            try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError || !session) {
+                    window.location.replace('login.html');
+                    return;
+                }
+
+                // FIX 1: Removed 'plans(*)' because the database relation doesn't exist yet
+                const { data: userProfile, error: profileError } = await supabase
+                    .from('referrers')
+                    .select('*') 
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profileError || !userProfile) {
+                    console.error("Profile Fetch Error:", profileError);
+                    alert("Database error fetching profile! Press F12 and check the Console.");
+                    return; // Notice we removed the redirect to login here so you don't get trapped in a loop
+                }
+
+                currentUserProfile = userProfile;
+
+                // FIX 2: Ensure we are checking for 'unpaid' like we fixed earlier
+                if (userProfile.payment_status === 'unpaid') {
+                    document.getElementById('main-dashboard').classList.add('blurred');
+                    document.getElementById('nav-receipt-btn').style.display = 'none';
+                    await loadPlans();
+                } else {
+                    currentPlanData = { name: "Activated Plan", price: 0 }; // Temporary fallback
+                    unlockDashboard(true);
+                }
+            } catch (err) {
+                console.error("Initialization error:", err);
+                alert("An unexpected error occurred. Press F12 to view it in the console.");
+            }
+        }
+
+        // --- 2. Load Plans ---
+        async function loadPlans() {
+            const { data: plans } = await supabase.from('plans').select('*').order('price', { ascending: true });
+            const container = document.getElementById('plans-container');
+            
+            container.innerHTML = `
+                <h3 class="package-section-title">Starter Package</h3>
+                <div class="plans-grid" id="starter-grid"></div>
+                <h3 class="package-section-title">Growth Package</h3>
+                <div class="plans-grid" id="growth-grid"></div>
+                <h3 class="package-section-title">Premium Package</h3>
+                <div class="plans-grid" id="premium-grid"></div>
+            `;
+
+            plans.forEach(plan => {
+                const badgeClass = plan.is_refundable ? 'badge-ref' : 'badge-non';
+                const badgeText = plan.is_refundable ? 'Refundable' : 'Non-Refundable';
+                
+                const card = document.createElement('div');
+                card.className = 'plan-card';
+                card.innerHTML = `
+                    <div class="plan-price">₹${plan.price}</div>
+                    <div class="badge ${badgeClass}">${badgeText}</div>
+                    <div class="plan-share">Earn <strong>${plan.share_percentage}%</strong> share on your referrals.</div>
+                    <button class="buy-btn" onclick="initiatePayment(${plan.id}, ${plan.price}, '${plan.name}')">Buy Package</button>
+                `;
+                
+                if ([120, 300, 600].includes(plan.price)) document.getElementById('starter-grid').appendChild(card);
+                else if ([900, 1200, 2400].includes(plan.price)) document.getElementById('growth-grid').appendChild(card);
+                else if ([6000, 12000].includes(plan.price)) document.getElementById('premium-grid').appendChild(card);
+                else document.getElementById('starter-grid').appendChild(card);
+            });
+
+            document.getElementById('plan-modal').style.display = 'flex';
+        }
+
+        // --- 3. REAL RAZORPAY INTEGRATION & SECURE DATABASE SYNC ---
+window.initiatePayment = async (planId, price, planName) => {
+    const amountInPaise = price * 100;
+    const options = {
+        "key": "rzp_live_SLBiU4cochPmaM", // Ensure this is your live key
+        "amount": amountInPaise,
+        "currency": "INR",
+        "name": "Supremacy Edu",
+        "description": `Activation: ${planName}`,
+        "theme": { "color": "#2563eb" },
+        "prefill": {
+            "name": currentUserProfile.name,
+            "email": currentUserProfile.email,
+            "contact": currentUserProfile.phone
+        },
+        "handler": async function (response) {
+            const paymentId = response.razorpay_payment_id;
+            
+            try {
+                // 1. Log the payment attempt in our secure payments table
+                await supabase.from('payments').insert([{
+                    referrer_id: currentUserProfile.id,
+                    razorpay_order_id: 'frontend_direct', 
+                    razorpay_payment_id: paymentId
+                }]);
+
+                // 2. Temporarily update the status here (We will lock this down with Webhooks next!)
+                const { error: userError } = await supabase.from('referrers').update({
+                    payment_status: 'paid',
+                    plan_id: planId
+                }).eq('id', currentUserProfile.id);
+
+                if (userError) throw userError;
+
+                // 3. SECURE FETCH: Grab the auto-generated REF code directly from the database
+                const { data: updatedProfile, error: fetchError } = await supabase
+                    .from('referrers')
+                    .select('referral_code')
+                    .eq('id', currentUserProfile.id)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                // 4. Update the UI with the secure data
+                currentUserProfile.referral_code = updatedProfile.referral_code;
+                currentUserProfile.payment_status = 'paid';
+                currentUserProfile.razorpay_payment_id = paymentId;
+                currentPlanData = { name: planName, price: price };
+
+                document.getElementById('plan-modal').style.display = 'none';
+                document.getElementById('display-ref-code').innerText = currentUserProfile.referral_code;
+                document.getElementById('success-modal').style.display = 'flex';
+
+            } catch (err) {
+                alert("Database Update Error: Please contact support with your payment ID: " + paymentId);
+                console.error("Payment Sync Error:", err);
+            }
+        }
+    };
+    
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response){ 
+        alert("Payment Failed: " + response.error.description); 
+    });
+    rzp.open();
+};
+
+        // --- 4. Unlock Dashboard ---
+        window.unlockDashboard = (isInitialLoad = false) => {
+            document.getElementById('plan-modal').style.display = 'none';
+            document.getElementById('success-modal').style.display = 'none';
+            document.getElementById('main-dashboard').classList.remove('blurred');
+            
+            document.getElementById('dash-ref-code').innerText = currentUserProfile.referral_code;
+            document.getElementById('dash-plan-name').innerText = currentPlanData ? currentPlanData.name : 'Unknown';
+            document.getElementById('nav-receipt-btn').style.display = 'block';
+
+            fetchAnalytics();
+        };
+
+        // --- 5. Generate Receipt ---
+        window.downloadReceipt = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42); doc.setFontSize(22); doc.text("Supremacy Edu", 20, 20);
+            doc.setFontSize(14); doc.setTextColor(100); doc.text("Official Payment Receipt", 20, 30); doc.setDrawColor(200); doc.line(20, 35, 190, 35);
+            doc.setFontSize(12); doc.setTextColor(0); doc.setFont("helvetica", "normal");
+            
+            const dateStr = new Date().toLocaleDateString();
+            doc.text(`Date: ${dateStr}`, 20, 45);
+            doc.text(`Transaction ID: ${currentUserProfile.razorpay_payment_id || 'N/A'}`, 20, 52);
+            doc.text(`Name: ${currentUserProfile.name}`, 20, 59);
+            doc.text(`Email: ${currentUserProfile.email}`, 20, 66);
+            doc.text(`Referral Code Assigned: ${currentUserProfile.referral_code}`, 20, 73);
+
+            doc.setFillColor(240, 240, 240); doc.rect(20, 85, 170, 10, 'F');
+            doc.setFont("helvetica", "bold"); doc.text("Description", 25, 92); doc.text("Amount", 160, 92);
+            doc.setFont("helvetica", "normal"); doc.text(`Platform Activation: ${currentPlanData.name}`, 25, 105); doc.text(`INR ${currentPlanData.price}.00`, 160, 105); doc.line(20, 115, 190, 115);
+
+            doc.setFontSize(10); doc.setTextColor(100); doc.text("Terms & Conditions:", 20, 130);
+            doc.text("1. This receipt is computer generated and requires no physical signature.", 20, 137);
+            doc.text("2. Refund policies apply strictly based on the selected plan tier.", 20, 144);
+            doc.text("3. This Fee is tax inclusive", 20, 151);
+            doc.text("4. This Fee is valid for 1 complete year from the date of joining.", 20, 158);
+            doc.text("3. For support, contact support@supremacyedu.com.", 20, 165);
+
+            doc.save(`SupremacyEdu_Receipt_${currentUserProfile.referral_code}.pdf`);
+        };
+
+        // --- 6. Logout ---
+        window.logout = async () => { await supabase.auth.signOut(); window.location.replace('login.html'); };
+
+        init();
+    </script>
+</body>
+</html>
