@@ -255,52 +255,38 @@ window.initiatePayment = async (planId, price, planName) => {
             "contact": currentUserProfile.phone
         },
         "handler": async function (response) {
-            const paymentId = response.razorpay_payment_id;
+            // 1. Visually inform the user that verification is happening server-side
+            document.getElementById('plan-modal').innerHTML = `
+                <div style="padding: 40px;">
+                    <h2 style="color: #38bdf8;">Verifying Payment...</h2>
+                    <p>Please wait a few seconds while our secure server activates your account.</p>
+                    <div class="loader" style="margin: 20px auto; border: 4px solid #334155; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                </div>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            `;
             
-            try {
-                // 1. Log the payment attempt in the ledger
-                await supabase.from('payments').insert([{
-                    referrer_id: currentUserProfile.id,
-                    razorpay_order_id: 'frontend_direct', 
-                    razorpay_payment_id: paymentId
-                }]);
-
-                // 2. Tell the database the payment was successful. 
-                // THIS triggers the SQL code above to generate the sequential REF code!
-                const { error: userError } = await supabase.from('referrers').update({
-                    payment_status: 'paid',
-                    plan_id: planId,
-                    razorpay_payment_id: paymentId
-                }).eq('id', currentUserProfile.id);
-
-                if (userError) throw userError;
-
-                // 3. SECURE FETCH: Grab the brand new, auto-generated code from the database
-                const { data: updatedProfile, error: fetchError } = await supabase
+            // 2. Poll the database every 2 seconds to see when the Edge Function finishes
+            const checkInterval = setInterval(async () => {
+                const { data, error } = await supabase
                     .from('referrers')
-                    .select('referral_code')
+                    .select('payment_status, referral_code, razorpay_payment_id')
                     .eq('id', currentUserProfile.id)
                     .single();
 
-                if (fetchError || !updatedProfile.referral_code) {
-                    throw new Error("Failed to retrieve the new referral code.");
+                if (data && data.payment_status === 'paid') {
+                    clearInterval(checkInterval); // Stop checking
+                    
+                    // Update local data for the receipt and UI
+                    currentUserProfile.referral_code = data.referral_code;
+                    currentUserProfile.payment_status = 'paid';
+                    currentUserProfile.razorpay_payment_id = data.razorpay_payment_id;
+                    
+                    // Show success!
+                    document.getElementById('plan-modal').style.display = 'none';
+                    document.getElementById('display-ref-code').innerText = data.referral_code;
+                    document.getElementById('success-modal').style.display = 'flex';
                 }
-
-                // 4. Update the local profile data so the Receipt PDF has the right info
-                currentUserProfile.referral_code = updatedProfile.referral_code;
-                currentUserProfile.payment_status = 'paid';
-                currentUserProfile.razorpay_payment_id = paymentId;
-                currentPlanData = { name: planName, price: price };
-
-                // 5. Hide the plans, show the success modal with the code and Receipt button
-                document.getElementById('plan-modal').style.display = 'none';
-                document.getElementById('display-ref-code').innerText = currentUserProfile.referral_code;
-                document.getElementById('success-modal').style.display = 'flex';
-
-            } catch (err) {
-                alert("Database Update Error. Please contact support with payment ID: " + paymentId);
-                console.error("Payment Sync Error:", err);
-            }
+            }, 2000);
         }
     };
     
