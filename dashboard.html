@@ -255,42 +255,47 @@ window.initiatePayment = async (planId, price, planName) => {
             const paymentId = response.razorpay_payment_id;
             
             try {
-                // 1. Log the payment attempt in our secure payments table
+                // 1. Log the payment attempt in the ledger
                 await supabase.from('payments').insert([{
                     referrer_id: currentUserProfile.id,
                     razorpay_order_id: 'frontend_direct', 
                     razorpay_payment_id: paymentId
                 }]);
 
-                // 2. Temporarily update the status here (We will lock this down with Webhooks next!)
+                // 2. Tell the database the payment was successful. 
+                // THIS triggers the SQL code above to generate the sequential REF code!
                 const { error: userError } = await supabase.from('referrers').update({
                     payment_status: 'paid',
-                    plan_id: planId
+                    plan_id: planId,
+                    razorpay_payment_id: paymentId
                 }).eq('id', currentUserProfile.id);
 
                 if (userError) throw userError;
 
-                // 3. SECURE FETCH: Grab the auto-generated REF code directly from the database
+                // 3. SECURE FETCH: Grab the brand new, auto-generated code from the database
                 const { data: updatedProfile, error: fetchError } = await supabase
                     .from('referrers')
                     .select('referral_code')
                     .eq('id', currentUserProfile.id)
                     .single();
 
-                if (fetchError) throw fetchError;
+                if (fetchError || !updatedProfile.referral_code) {
+                    throw new Error("Failed to retrieve the new referral code.");
+                }
 
-                // 4. Update the UI with the secure data
+                // 4. Update the local profile data so the Receipt PDF has the right info
                 currentUserProfile.referral_code = updatedProfile.referral_code;
                 currentUserProfile.payment_status = 'paid';
                 currentUserProfile.razorpay_payment_id = paymentId;
                 currentPlanData = { name: planName, price: price };
 
+                // 5. Hide the plans, show the success modal with the code and Receipt button
                 document.getElementById('plan-modal').style.display = 'none';
                 document.getElementById('display-ref-code').innerText = currentUserProfile.referral_code;
                 document.getElementById('success-modal').style.display = 'flex';
 
             } catch (err) {
-                alert("Database Update Error: Please contact support with your payment ID: " + paymentId);
+                alert("Database Update Error. Please contact support with payment ID: " + paymentId);
                 console.error("Payment Sync Error:", err);
             }
         }
