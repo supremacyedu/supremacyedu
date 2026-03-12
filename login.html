@@ -31,50 +31,68 @@
     </div>
 
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co'; 
-        const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co'; 
+    const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-        window.handleLogin = async (event) => {
-            event.preventDefault();
-            const msg = document.getElementById('message');
-            msg.style.display = "block";
-            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
-            msg.style.color = "#38bdf8"; 
-            msg.innerText = "Authenticating...";
+    // Grab the button and attach the listener directly
+    const loginButton = document.querySelector('.primary-btn');
+    
+    loginButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const msg = document.getElementById('message');
+        msg.style.display = "block";
+        msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+        msg.style.color = "#38bdf8"; 
+        msg.innerText = "Authenticating...";
 
-            try {
-                const email = document.getElementById('ref-email').value.trim();
-                const password = document.getElementById('ref-password').value;
+        try {
+            const email = document.getElementById('ref-email').value.trim();
+            const password = document.getElementById('ref-password').value;
 
-                if (!email || !password) throw new Error("Please enter your email and password.");
+            if (!email || !password) throw new Error("Please enter your email and password.");
 
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-                if (authError) throw new Error("Invalid email or password.");
+            // 1. Sign in the user via Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
+                email, 
+                password 
+            });
+            
+            if (authError) throw new Error("Invalid email or password.");
 
-                const { data: profile, error: profileError } = await supabase
-                    .from('referrers')
-                    .select('id, payment_status')
-                    .eq('id', authData.user.id)
-                    .single();
+            // 2. Fetch the profile from the 'referrers' table
+            const { data: profile, error: profileError } = await supabase
+                .from('referrers')
+                .select('id, payment_status')
+                .eq('id', authData.user.id)
+                .single();
 
-                if (profileError || !profile) {
-                    await supabase.auth.signOut();
-                    throw new Error("Referrer profile not found. Please sign up first.");
-                }
-
-                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
-                msg.style.color = "#4ade80"; 
-                msg.innerText = "Login successful!";
-                window.location.href = "dashboard.html"; 
-
-            } catch (err) {
-                msg.style.backgroundColor = "var(--error-bg)";
-                msg.style.color = "var(--error-text)"; 
-                msg.innerText = err.message;
+            if (profileError) {
+                console.error("Database Error:", profileError); 
+                throw new Error("Profile sync failed. Please contact support.");
             }
-        };
-    </script>
+
+            // 3. Success UI Update
+            msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msg.style.color = "#4ade80"; 
+            msg.innerText = "Login successful! Redirecting...";
+
+            // 4. Secure Routing based on payment status
+            setTimeout(() => {
+                if (profile.payment_status === 'paid') {
+                    window.location.href = "dashboard.html"; 
+                } else {
+                    window.location.href = "dashboard.html"; 
+                }
+            }, 1000);
+
+        } catch (err) {
+            msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
+            msg.style.color = "#f87171"; 
+            msg.innerText = err.message;
+        }
+    });
+</script>
 </body>
 </html>

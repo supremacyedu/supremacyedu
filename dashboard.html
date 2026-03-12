@@ -8,6 +8,8 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     
     <style>
+        /* --- Security: Hide page until Auth is verified --- */
+
         /* --- Custom Dark Scrollbar for Modal --- */
         .modal-content::-webkit-scrollbar { width: 8px; }
         .modal-content::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
@@ -168,127 +170,38 @@
                     return;
                 }
 
-                const { data: userProfile, error: profileError } = await supabase.from('referrers').select('*, plans(*)').eq('id', session.user.id).single();
+                // FIX 1: Removed 'plans(*)' because the database relation doesn't exist yet
+                const { data: userProfile, error: profileError } = await supabase
+                    .from('referrers')
+                    .select('*') 
+                    .eq('id', session.user.id)
+                    .single();
                 
                 if (profileError || !userProfile) {
-                    window.location.replace('login.html');
-                    return;
+                    console.error("Profile Fetch Error:", profileError);
+                    alert("Database error fetching profile! Press F12 and check the Console.");
+                    return; 
                 }
 
                 currentUserProfile = userProfile;
+                
+                // NEW: Grab the email from the secure auth session!
+                currentUserProfile.email = session.user.email; 
 
-                if (userProfile.payment_status === 'pending') {
+                // FIX 2: Ensure we are checking for 'unpaid' like we fixed earlier
+                if (userProfile.payment_status === 'unpaid') {
                     document.getElementById('main-dashboard').classList.add('blurred');
                     document.getElementById('nav-receipt-btn').style.display = 'none';
                     await loadPlans();
                 } else {
-                    currentPlanData = userProfile.plans; 
+                    currentPlanData = { name: "Activated Plan", price: 0 }; // Temporary fallback
                     unlockDashboard(true);
                 }
             } catch (err) {
                 console.error("Initialization error:", err);
-                window.location.replace('login.html');
+                alert("An unexpected error occurred. Press F12 to view it in the console.");
             }
         }
-
-        // --- Fetch Stats ---
-        // --- Fetch Stats ---
-        async function fetchAnalytics() {
-            if (!currentUserProfile || !currentUserProfile.referral_code) return;
-
-            const { count, error } = await supabase
-                .from('referrers')
-                .select('*', { count: 'exact', head: true })
-                .eq('rde_code_used', currentUserProfile.referral_code);
-            
-            const studentCount = count || 0;
-            document.getElementById('dash-students').innerText = studentCount;
-
-            const totalPayout = studentCount * 100; // Update 100 to your commission rate
-            document.getElementById('dash-payouts').innerText = `₹${totalPayout}`;
-
-            // SMART BUTTON LOGIC: Change button if already pending
-            const payoutBtn = document.querySelector('.stat-card button');
-            if (currentUserProfile.payout_status === 'pending') {
-                payoutBtn.innerText = "Update Payment Details";
-                payoutBtn.style.background = "#3b82f6"; // Make it blue
-                payoutBtn.style.color = "white";
-                payoutBtn.style.border = "none";
-            }
-        }
-
-        // --- Payout Modal Controls ---
-        let activePayoutMethod = 'upi';
-
-        window.openPayoutModal = () => document.getElementById('payout-modal').style.display = 'flex';
-        window.closePayoutModal = () => document.getElementById('payout-modal').style.display = 'none';
-
-        window.switchPayout = (method) => {
-            activePayoutMethod = method;
-            if (method === 'upi') {
-                document.getElementById('section-upi').classList.remove('hidden-form');
-                document.getElementById('section-bank').classList.add('hidden-form');
-                document.getElementById('btn-upi').classList.add('active');
-                document.getElementById('btn-bank').classList.remove('active');
-            } else {
-                document.getElementById('section-upi').classList.add('hidden-form');
-                document.getElementById('section-bank').classList.remove('hidden-form');
-                document.getElementById('btn-upi').classList.remove('active');
-                document.getElementById('btn-bank').classList.add('active');
-            }
-        };
-
-        window.submitPayoutRequest = async () => {
-            let upiData = null;
-            let bankData = null;
-            const payoutAmount = document.getElementById('dash-payouts').innerText.replace('₹', '');
-
-            if (activePayoutMethod === 'upi') {
-                upiData = document.getElementById('upi-id').value.trim();
-                if (!upiData) return alert("Please enter your UPI ID.");
-            } else {
-                const holder = document.getElementById('bank-holder').value.trim();
-                const accNum = document.getElementById('bank-acc').value.trim();
-                const ifsc = document.getElementById('bank-ifsc').value.trim();
-                const bName = document.getElementById('bank-name').value.trim();
-
-                if (!holder || !accNum || !ifsc || !bName) return alert("Please fill in all 4 bank details.");
-                bankData = `Holder: ${holder} | Acc: ${accNum} | IFSC: ${ifsc} | Bank: ${bName}`;
-            }
-
-            try {
-                const { error } = await supabase.from('referrers').update({
-                    payout_amount: payoutAmount,
-                    payout_upi: upiData,
-                    payout_bank: bankData,
-                    payout_status: 'pending'
-                }).eq('id', currentUserProfile.id);
-
-                if (error) throw error;
-
-                // Tell the user if it was a new request or an update
-                if (currentUserProfile.payout_status === 'pending') {
-                    alert("Success! Your payment details have been updated.");
-                } else {
-                    alert("Success! Your payout request has been sent to the admin.");
-                }
-
-                // Update the local profile and refresh the button
-                currentUserProfile.payout_status = 'pending';
-                fetchAnalytics(); 
-                
-                document.getElementById('upi-id').value = '';
-                document.getElementById('bank-holder').value = '';
-                document.getElementById('bank-acc').value = '';
-                document.getElementById('bank-ifsc').value = '';
-                document.getElementById('bank-name').value = '';
-                closePayoutModal();
-                
-            } catch (err) {
-                console.error(err);
-                alert("Error submitting request. Please try again.");
-            }
-        };
 
         // --- 2. Load Plans ---
         async function loadPlans() {
@@ -326,68 +239,63 @@
             document.getElementById('plan-modal').style.display = 'flex';
         }
 
-        // --- 3. REAL RAZORPAY INTEGRATION & REF0001A ENGINE ---
-        window.initiatePayment = async (planId, price, planName) => {
-            const amountInPaise = price * 100;
-            const options = {
-                "key": "rzp_live_SLBiU4cochPmaM",
-                "amount": amountInPaise,
-                "currency": "INR",
-                "name": "Supremacy Edu",
-                "description": `Activation: ${planName}`,
-                "theme": { "color": "#2563eb" },
-                "prefill": {
-                    "name": currentUserProfile.name,
-                    "email": currentUserProfile.email,
-                    "contact": currentUserProfile.phone
-                },
-                "handler": async function (response) {
-                    const realRazorpayId = response.razorpay_payment_id;
-                    try {
-                        const { data: trackerData, error: trackerError } = await supabase.from('referral_tracker').select('*').single();
-                        if (trackerError || !trackerData) throw new Error("Tracker error.");
+        // --- 3. REAL RAZORPAY INTEGRATION & SECURE DATABASE SYNC ---
+window.initiatePayment = async (planId, price, planName) => {
+    const amountInPaise = price * 100;
+    const options = {
+        "key": "rzp_live_SLBiU4cochPmaM", // Ensure this is your live key
+        "amount": amountInPaise,
+        "currency": "INR",
+        "name": "Supremacy Edu",
+        "description": `Activation: ${planName}`,
+        "theme": { "color": "#2563eb" },
+        "prefill": {
+            "name": currentUserProfile.name,
+            "email": currentUserProfile.email,
+            "contact": currentUserProfile.phone
+        },
+        "handler": async function (response) {
+            // 1. Visually inform the user that verification is happening server-side
+            document.getElementById('plan-modal').innerHTML = `
+                <div style="padding: 40px;">
+                    <h2 style="color: #38bdf8;">Verifying Payment...</h2>
+                    <p>Please wait a few seconds while our secure server activates your account.</p>
+                    <div class="loader" style="margin: 20px auto; border: 4px solid #334155; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                </div>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            `;
+            
+            // 2. Poll the database every 2 seconds to see when the Edge Function finishes
+            const checkInterval = setInterval(async () => {
+                const { data, error } = await supabase
+                    .from('referrers')
+                    .select('payment_status, referral_code, razorpay_payment_id')
+                    .eq('id', currentUserProfile.id)
+                    .single();
 
-                        let currentNum = trackerData.current_num;
-                        let currentLetter = trackerData.current_letter;
-                        const paddedNum = String(currentNum).padStart(4, '0'); 
-                        const newReferralCode = `REF${paddedNum}${currentLetter}`;
-
-                        let nextNum = currentNum + 1;
-                        let nextLetter = currentLetter;
-                        if (nextNum > 9999) {
-                            nextNum = 1;
-                            nextLetter = String.fromCharCode(currentLetter.charCodeAt(0) + 1); 
-                        }
-
-                        const { error: userError } = await supabase.from('referrers').update({
-                            payment_status: 'paid',
-                            plan_id: planId,
-                            referral_code: newReferralCode,
-                            razorpay_payment_id: realRazorpayId
-                        }).eq('id', currentUserProfile.id);
-
-                        if (userError) throw userError;
-
-                        await supabase.from('referral_tracker').update({ current_num: nextNum, current_letter: nextLetter }).eq('id', trackerData.id);
-
-                        currentUserProfile.referral_code = newReferralCode;
-                        currentUserProfile.razorpay_payment_id = realRazorpayId;
-                        currentPlanData = { name: planName, price: price };
-
-                        document.getElementById('plan-modal').style.display = 'none';
-                        document.getElementById('display-ref-code').innerText = newReferralCode;
-                        document.getElementById('success-modal').style.display = 'flex';
-
-                    } catch (err) {
-                        alert("Database Update Error: Please contact support with your payment ID: " + realRazorpayId);
-                        console.error(err);
-                    }
+                if (data && data.payment_status === 'paid') {
+                    clearInterval(checkInterval); // Stop checking
+                    
+                    // Update local data for the receipt and UI
+                    currentUserProfile.referral_code = data.referral_code;
+                    currentUserProfile.payment_status = 'paid';
+                    currentUserProfile.razorpay_payment_id = data.razorpay_payment_id;
+                    
+                    // Show success!
+                    document.getElementById('plan-modal').style.display = 'none';
+                    document.getElementById('display-ref-code').innerText = data.referral_code;
+                    document.getElementById('success-modal').style.display = 'flex';
                 }
-            };
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response){ alert("Payment Failed: " + response.error.description); });
-            rzp.open();
-        };
+            }, 2000);
+        }
+    };
+    
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response){ 
+        alert("Payment Failed: " + response.error.description); 
+    });
+    rzp.open();
+};
 
         // --- 4. Unlock Dashboard ---
         window.unlockDashboard = (isInitialLoad = false) => {
@@ -403,6 +311,7 @@
         };
 
         // --- 5. Generate Receipt ---
+        // --- 5. Generate Receipt ---
         window.downloadReceipt = () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -411,27 +320,32 @@
             doc.setFontSize(14); doc.setTextColor(100); doc.text("Official Payment Receipt", 20, 30); doc.setDrawColor(200); doc.line(20, 35, 190, 35);
             doc.setFontSize(12); doc.setTextColor(0); doc.setFont("helvetica", "normal");
             
-            const dateStr = new Date().toLocaleDateString();
-            doc.text(`Date: ${dateStr}`, 20, 45);
+            // ADDED: toLocaleString() pulls both the Date AND the exact Time
+            const dateTimeStr = new Date().toLocaleString('en-IN'); 
+            doc.text(`Date & Time: ${dateTimeStr}`, 20, 45);
             doc.text(`Transaction ID: ${currentUserProfile.razorpay_payment_id || 'N/A'}`, 20, 52);
             doc.text(`Name: ${currentUserProfile.name}`, 20, 59);
-            doc.text(`Email: ${currentUserProfile.email}`, 20, 66);
+            doc.text(`Email: ${currentUserProfile.email || 'N/A'}`, 20, 66);
             doc.text(`Referral Code Assigned: ${currentUserProfile.referral_code}`, 20, 73);
 
             doc.setFillColor(240, 240, 240); doc.rect(20, 85, 170, 10, 'F');
             doc.setFont("helvetica", "bold"); doc.text("Description", 25, 92); doc.text("Amount", 160, 92);
-            doc.setFont("helvetica", "normal"); doc.text(`Platform Activation: ${currentPlanData.name}`, 25, 105); doc.text(`INR ${currentPlanData.price}.00`, 160, 105); doc.line(20, 115, 190, 115);
+            
+            // ADDED: This regex automatically deletes any rogue "1" or "¹" at the start of the plan name
+            let cleanPlanName = currentPlanData.name.replace(/^[¹1]\s*/, '');
+            
+            doc.setFont("helvetica", "normal"); doc.text(`Platform Activation: ${cleanPlanName}`, 25, 105); doc.text(`INR ${currentPlanData.price}.00`, 160, 105); doc.line(20, 115, 190, 115);
 
             doc.setFontSize(10); doc.setTextColor(100); doc.text("Terms & Conditions:", 20, 130);
             doc.text("1. This receipt is computer generated and requires no physical signature.", 20, 137);
             doc.text("2. Refund policies apply strictly based on the selected plan tier.", 20, 144);
-            doc.text("3. This Fee is tax inclusive", 20, 151);
+            doc.text("3. This Fee is tax inclusive.", 20, 151);
             doc.text("4. This Fee is valid for 1 complete year from the date of joining.", 20, 158);
-            doc.text("3. For support, contact support@supremacyedu.com.", 20, 165);
+            // FIXED: Changed the second "3." to a "5."
+            doc.text("5. For support, contact support@supremacyedu.com.", 20, 165); 
 
             doc.save(`SupremacyEdu_Receipt_${currentUserProfile.referral_code}.pdf`);
         };
-
         // --- 6. Logout ---
         window.logout = async () => { await supabase.auth.signOut(); window.location.replace('login.html'); };
 

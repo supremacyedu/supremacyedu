@@ -39,63 +39,66 @@
         </div>
     </div>
 
- <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
 
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const msg = document.getElementById('message');
-            msg.style.display = "block";
-            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
-            msg.style.color = "#38bdf8"; 
-            msg.innerText = "Creating your account...";
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('message');
+        msg.style.display = "block";
+        msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+        msg.style.color = "#38bdf8"; 
+        msg.innerText = "Creating your account...";
 
-            const name = document.getElementById('reg-name').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const rdeCode = document.getElementById('regRdeCode').value.trim();
-            const password = document.getElementById('reg-pass').value;
+        const name = document.getElementById('reg-name').value.trim();
+        const phone = document.getElementById('reg-phone').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const rdeCode = document.getElementById('regRdeCode').value.trim();
+        const password = document.getElementById('reg-pass').value;
 
-            try {
-                // 1. Verify the RDE Code exists
-                const { data: validRde, error: rdeErr } = await supabase
-                    .from('allowed_rdes')
-                    .select('rde_code')
-                    .ilike('rde_code', rdeCode)
-                    .single();
+        try {
+            // 1. Create the Auth Account 
+            const { data: authData, error: authErr } = await supabase.auth.signUp({ 
+                email, 
+                password 
+            });
+            
+            if (authErr) throw authErr;
 
-                if (!validRde) throw new Error(`Invalid RDE Code: ${rdeCode}. Please check with your referrer.`);
-
-                // 2. Create the Auth Account and pass custom data as metadata
-                const { data: authData, error: authErr } = await supabase.auth.signUp({ 
-                    email, 
-                    password,
-                    options: {
-                        data: {
-                            full_name: name,
-                            phone: phone,
-                            rde_code_used: validRde.rde_code
-                        }
-                    }
-                });
-                
-                if (authErr) throw authErr;
-
-                // 3. (Removed frontend insert here. The database handles it automatically now!)
-
-                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
-                msg.style.color = "#4ade80"; 
-                msg.innerText = "Account created! Redirecting to login...";
-                
-                setTimeout(() => { window.location.href = "login.html"; }, 1500);
-
-            } catch (err) {
-                msg.style.backgroundColor = "var(--error-bg)";
-                msg.style.color = "var(--error-text)"; 
-                msg.innerText = err.message;
+            // NEW: Detect the Supabase "Fake User" Security Feature
+            if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+                throw new Error("This email is already registered. Please log in.");
             }
-        });
-    </script>
+
+            msg.innerText = "Saving profile details...";
+
+            // 2. FORCE INSERT INTO THE DATABASE DIRECTLY
+            const { error: dbErr } = await supabase.from('referrers').insert([
+                {
+                    id: authData.user.id,
+                    name: name,
+                    phone: phone,
+                    referred_by_rde: rdeCode,
+                    payment_status: 'unpaid'
+                }
+            ]);
+
+            if (dbErr) throw new Error(dbErr.message);
+
+            // 3. Success!
+            msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msg.style.color = "#4ade80"; 
+            msg.innerText = "Account fully created! Redirecting to login...";
+            
+            setTimeout(() => { window.location.href = "login.html"; }, 1500);
+
+        } catch (err) {
+            msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
+            msg.style.color = "#f87171"; 
+            msg.innerText = err.message; // Will now cleanly say "Email already registered"
+        }
+    });
+</script>
 </body>
 </html>
