@@ -2,86 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Careers - Login</title>
+    <title>Supremacy Edu - RDE Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body class="auth-page">
 
-    <div class="login-card">
-        <a href="career.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Careers</a>
+    <div class="login-card" style="border-top: 4px solid #4ade80;">
+        <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
 
-        <h2>Candidate Login</h2>
-        <p>Access your application portal.</p>
+        <h2>Executive Portal</h2>
+        <p>Log in to your RDE Dashboard</p>
 
-        <form id="candidate-login-form">
-            <div class="input-group"><input type="email" id="log-email" placeholder="Email Address" required></div>
-            <div class="input-group"><input type="password" id="log-pass" placeholder="Password" required></div>
+        <form id="login-form">
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Executive Email" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="pass" placeholder="Password" required>
+            </div>
             
-            <button type="submit" class="primary-btn" id="login-btn">Log In</button>
+            <button type="submit" class="primary-btn" id="login-btn" style="background: linear-gradient(135deg, #10b981, #059669);">Secure Login</button>
         </form>
 
         <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
         
-        <div class="login-link">
-            New candidate? <a href="rde-signup.html">Register here</a>
+        <div class="signup">
+            Want to become an RDE? <a href="rde-signup.html" style="color: #4ade80;">Apply here</a><br><br>
+            <a href="login.html" style="color: var(--text-muted); font-weight: normal;">Standard Referrer? <span style="color: var(--primary); font-weight: bold;">Log in here</span></a>
         </div>
     </div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    
+    // Replace with your exact Supabase URL and Anon Key
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+    const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-        document.getElementById('candidate-login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const msg = document.getElementById('message');
-            const btn = document.getElementById('login-btn');
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('message');
+        const btn = document.getElementById('login-btn');
+        
+        msg.style.display = "block";
+        msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
+        msg.style.color = "#38bdf8"; 
+        msg.innerText = "Authenticating Executive...";
+        btn.disabled = true;
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('pass').value;
+
+        try {
+            // 1. Authenticate with Supabase
+            const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
             
-            msg.style.display = "block";
-            msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
-            msg.style.color = "#38bdf8"; 
-            msg.innerText = "Authenticating...";
-            btn.disabled = true;
-
-            const email = document.getElementById('log-email').value.trim();
-            const password = document.getElementById('log-pass').value;
-
-            try {
-                // 1. Authenticate
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-                if (authError) throw new Error("Invalid email or password.");
-
-                const userId = authData.user.id;
-
-                // 2. Fetch from the unified 'rdes' table
-                const { data: appProfile, error: profileError } = await supabase
-                    .from('rdes')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle(); 
-
-                if (!appProfile) {
-                    throw new Error("No RDE application found. Please register first.");
+            if (authErr) {
+                if (authErr.message.toLowerCase().includes("email not confirmed")) {
+                    throw new Error("Please check your email and click the verification link before logging in.");
                 }
-
-                msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
-                msg.style.color = "#4ade80"; 
-                msg.innerText = "Login successful! Routing...";
-
-                // 3. Routing Logic based on Document Uploads
-                if (!appProfile.id_proof_url) {
-                    setTimeout(() => { window.location.href = "rde-form.html"; }, 1000);
-                } else {
-                    setTimeout(() => { window.location.href = "rde-dashboard.html"; }, 1000);
-                }
-
-            } catch (err) {
-                msg.style.backgroundColor = "var(--error-bg)";
-                msg.style.color = "var(--error-text)"; 
-                msg.innerText = err.message;
-                btn.disabled = false;
+                throw authErr;
             }
-        });
-    </script>
+
+            // 2. SMART ROUTING: Check if they are actually an RDE
+            const { data: rdeData, error: rdeErr } = await supabase
+                .from('rdes')
+                .select('id')
+                .eq('id', authData.user.id)
+                .single();
+
+            if (rdeErr || !rdeData) {
+                // If they aren't in the RDEs table, boot them out
+                await supabase.auth.signOut();
+                throw new Error("Executive profile not found. Are you trying to log in as a standard Referrer?");
+            }
+
+            // 3. Success! Send them to the RDE dashboard
+            msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msg.style.color = "#4ade80";
+            msg.innerText = "Access granted. Redirecting...";
+            
+            setTimeout(() => { window.location.href = "rde-dashboard.html"; }, 1000);
+
+        } catch (err) {
+            msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
+            msg.style.color = "#f87171"; 
+            msg.innerText = err.message; 
+            btn.disabled = false;
+        }
+    });
+</script>
 </body>
 </html>

@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Supremacy Edu - Referrer Login</title>
-    <link rel="icon" type="image/png" href="src/logo.png">
-    <meta name="Join Supremacy Edu's referral program and earn payouts by helping students find the best educational institute" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body class="auth-page">
@@ -12,85 +11,87 @@
     <div class="login-card">
         <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
 
-        <h2>Referrer Login</h2>
-        
-        <div id="referrer-fields" style="margin-top: 20px;">
-            <div class="input-group"><input type="email" id="ref-email" placeholder="Email Address"></div>
-            <div class="input-group"><input type="password" id="ref-password" placeholder="Password"></div>
-        </div>
+        <h2>Welcome Back</h2>
+        <p>Log in to your Referrer Dashboard</p>
 
-        <button type="button" class="primary-btn" onclick="handleLogin(event)">Login</button>
-        
+        <form id="login-form">
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Email Address" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="pass" placeholder="Password" required>
+            </div>
+            
+            <button type="submit" class="primary-btn" id="login-btn">Secure Login</button>
+        </form>
+
         <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
         
-        <div class="login-link" style="margin-top: 20px;">
-            Don't have an account? <a href="signup.html">Sign up here</a>
-            <br><br>
-            Are you an RDE? <a href="login-rde.html">Login here</a>
+        <div class="signup">
+            Don't have an account? <a href="signup.html">Sign up here</a><br><br>
+            <a href="rde-login.html" style="color: var(--text-muted); font-weight: normal;">Are you an Executive? <span style="color: var(--primary); font-weight: bold;">RDE Login</span></a>
         </div>
     </div>
 
-    <script type="module">
+<script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co'; 
-    const supabaseAnonKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Grab the button and attach the listener directly
-    const loginButton = document.querySelector('.primary-btn');
     
-    loginButton.addEventListener('click', async (event) => {
-        event.preventDefault();
+    // Replace with your exact Supabase URL and Anon Key
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+    const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
         const msg = document.getElementById('message');
+        const btn = document.getElementById('login-btn');
+        
         msg.style.display = "block";
         msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
         msg.style.color = "#38bdf8"; 
         msg.innerText = "Authenticating...";
+        btn.disabled = true;
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('pass').value;
 
         try {
-            const email = document.getElementById('ref-email').value.trim();
-            const password = document.getElementById('ref-password').value;
-
-            if (!email || !password) throw new Error("Please enter your email and password.");
-
-            // 1. Sign in the user via Supabase Auth
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
-                email, 
-                password 
-            });
+            // 1. Authenticate with Supabase
+            const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
             
-            if (authError) throw new Error("Invalid email or password.");
+            if (authErr) {
+                // Check if the error is specifically because they haven't verified their email
+                if (authErr.message.toLowerCase().includes("email not confirmed")) {
+                    throw new Error("Please check your email and click the verification link before logging in.");
+                }
+                throw authErr;
+            }
 
-            // 2. Fetch the profile from the 'referrers' table
-            const { data: profile, error: profileError } = await supabase
+            // 2. SMART ROUTING: Check if they are actually a Referrer
+            const { data: refData, error: refErr } = await supabase
                 .from('referrers')
-                .select('id, payment_status')
+                .select('id')
                 .eq('id', authData.user.id)
                 .single();
 
-            if (profileError) {
-                console.error("Database Error:", profileError); 
-                throw new Error("Profile sync failed. Please contact support.");
+            if (refErr || !refData) {
+                // If they aren't in the referrers table, log them out and show an error
+                await supabase.auth.signOut();
+                throw new Error("Referrer profile not found. Are you trying to log in as an RDE?");
             }
 
-            // 3. Success UI Update
+            // 3. Success! Send them to the dashboard
             msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
-            msg.style.color = "#4ade80"; 
+            msg.style.color = "#4ade80";
             msg.innerText = "Login successful! Redirecting...";
-
-            // 4. Secure Routing based on payment status
-            setTimeout(() => {
-                if (profile.payment_status === 'paid') {
-                    window.location.href = "dashboard.html"; 
-                } else {
-                    window.location.href = "dashboard.html"; 
-                }
-            }, 1000);
+            
+            setTimeout(() => { window.location.href = "referrer-dashboard.html"; }, 1000);
 
         } catch (err) {
             msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
             msg.style.color = "#f87171"; 
-            msg.innerText = err.message;
+            msg.innerText = err.message; 
+            btn.disabled = false;
         }
     });
 </script>

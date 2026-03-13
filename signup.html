@@ -12,13 +12,26 @@
         <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
 
         <h2>Create Account</h2>
-        <p>Join the Supremacy Edu Platform</p>
+        <p>Step 1: Verify your phone number</p>
 
-        <form id="signup-form">
+        <div id="phone-section">
+            <div class="input-group">
+                <input type="tel" id="reg-phone" placeholder="Phone Number (10 digits)" required>
+            </div>
+            <button type="button" class="primary-btn" id="btn-send-otp">Send OTP</button>
+        </div>
+
+        <div id="otp-section" style="display: none; margin-top: 15px;">
+            <p style="color: #4ade80; font-size: 13px; margin-bottom: 10px;">OTP sent to your phone!</p>
+            <div class="input-group">
+                <input type="text" id="reg-otp" placeholder="Enter 6-digit OTP" required maxlength="6">
+            </div>
+            <button type="button" class="primary-btn" id="btn-verify-otp">Verify OTP</button>
+        </div>
+
+        <form id="signup-form" style="display: none; margin-top: 15px;">
             <div class="input-group"><input type="text" id="reg-name" placeholder="Full Name" required></div>
-            <div class="input-group"><input type="tel" id="reg-phone" placeholder="Phone Number" required></div>
             <div class="input-group"><input type="email" id="reg-email" placeholder="Email Address" required></div>
-            
             <div class="input-group"><input type="text" id="regRdeCode" placeholder="RDE Code (e.g., RDE001A)" required></div>
             <div class="input-group"><input type="password" id="reg-pass" placeholder="Create Password" required></div>
             
@@ -29,7 +42,7 @@
                 </label>
             </div>
             
-            <button type="submit" class="primary-btn">Sign Up</button>
+            <button type="submit" class="primary-btn" id="submit-btn">Complete Sign Up</button>
         </form>
 
         <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
@@ -41,48 +54,153 @@
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-    const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+    
+    // Replace with your exact Supabase URL and Anon Key
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+    const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const msgBox = document.getElementById('message');
+    let verifiedPhone = ""; // Store the phone number once verified
+
+    function showMessage(text, isError = false) {
+        msgBox.style.display = "block";
+        msgBox.style.backgroundColor = isError ? "rgba(248, 113, 113, 0.1)" : "rgba(56, 189, 248, 0.1)";
+        msgBox.style.color = isError ? "#f87171" : "#38bdf8"; 
+        msgBox.innerHTML = text;
+    }
+
+    // --- STEP 1: SEND OTP ---
+    document.getElementById('btn-send-otp').addEventListener('click', async () => {
+        const phone = document.getElementById('reg-phone').value.trim();
+        const btn = document.getElementById('btn-send-otp');
+        
+        if(phone.length < 10) {
+            showMessage("Please enter a valid phone number.", true);
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Sending...";
+        msgBox.style.display = "none";
+
+        try {
+            // Trigger your Supabase Edge Function to send Fast2SMS
+            const response = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone })
+            });
+
+            const result = await response.json();
+            
+            if (!result.success) throw new Error(result.error || "Failed to send OTP.");
+
+            // Success: Hide step 1, show step 2
+            document.getElementById('phone-section').style.display = 'none';
+            document.getElementById('otp-section').style.display = 'block';
+            document.querySelector('.signup-card p').innerText = "Step 2: Enter the 6-digit code";
+            
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+            btn.innerText = "Send OTP";
+        }
+    });
+
+    // --- STEP 2: VERIFY OTP ---
+    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
+        const phone = document.getElementById('reg-phone').value.trim();
+        const otp = document.getElementById('reg-otp').value.trim();
+        const btn = document.getElementById('btn-verify-otp');
+
+        if(otp.length !== 6) {
+            showMessage("Please enter a valid 6-digit OTP.", true);
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Verifying...";
+        msgBox.style.display = "none";
+
+        try {
+            // Check the database for the matching OTP
+            const { data, error } = await supabase
+                .from('otp_requests')
+                .select('*')
+                .eq('phone_number', phone)
+                .eq('otp_code', otp)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !data) throw new Error("Invalid OTP code.");
+            
+            // Check if expired
+            if (new Date(data.expires_at) < new Date()) {
+                throw new Error("OTP has expired. Please refresh and try again.");
+            }
+
+            // Mark as verified in DB for security
+            await supabase.from('otp_requests').update({ is_verified: true }).eq('id', data.id);
+
+            // Success: Unlock the final form
+            verifiedPhone = phone; // Lock in the verified number
+            document.getElementById('otp-section').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'block';
+            document.querySelector('.signup-card p').innerText = "Step 3: Complete your profile";
+            
+            showMessage("Phone verified! Please fill out the rest of your details.", false);
+
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+            btn.innerText = "Verify OTP";
+        }
+    });
+
+    // --- STEP 3: COMPLETE SIGNUP & TRIGGER EMAIL ---
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const msg = document.getElementById('message');
-        msg.style.display = "block";
-        msg.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
-        msg.style.color = "#38bdf8"; 
-        msg.innerText = "Creating your account...";
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        showMessage("Creating your account...", false);
 
-        // 1. Grab all values including the new RDE Code
-            const name = document.getElementById('name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('pass').value;
-            // Force uppercase so it matches the database formatting perfectly
-            const referringRde = document.getElementById('rde-code').value.trim().toUpperCase(); 
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-pass').value;
+        const referringRde = document.getElementById('regRdeCode').value.trim().toUpperCase(); 
 
-            try {
-                // 2. Create user in Supabase Auth
-                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
-                if (authErr) throw authErr;
+        try {
+            // 1. Create user in Supabase Auth (Triggers Resend Email automatically)
+            const { data: authData, error: authErr } = await supabase.auth.signUp({ 
+                email, 
+                password,
+                options: { emailRedirectTo: window.location.origin + '/login.html' }
+            });
+            if (authErr) throw authErr;
 
-                // 3. Insert profile into the referrers table WITH the RDE Code
-                const { error: dbErr } = await supabase.from('referrers').insert([{
-                    id: authData.user.id,
-                    name: name,
-                    phone: phone,
-                    email: email,
-                    referred_by_rde: referringRde // Links this referrer to their RDE!
-                }]);
-                
-                if (dbErr) throw dbErr;
+            // 2. Insert profile into the referrers table
+            const { error: dbErr } = await supabase.from('referrers').insert([{
+                id: authData.user.id,
+                name: name,
+                phone: verifiedPhone, // Use the secure, verified phone number!
+                email: email,
+                referred_by_rde: referringRde 
+            }]);
+            
+            if (dbErr) throw dbErr;
 
-                msg.style.color = "#4ade80";
-                msg.innerText = "Registration successful! Redirecting to login...";
-                setTimeout(() => { window.location.href = "login.html"; }, 2000); 
+            // 3. Update UI to tell them to check their email
+            msgBox.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msgBox.style.color = "#4ade80";
+            msgBox.innerHTML = "Registration successful!<br><br><b>Please check your email to verify your account</b> before logging in.";
+            document.getElementById('signup-form').reset();
+            document.getElementById('submit-btn').style.display = 'none';
 
-            } catch (err) {
-            msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
-            msg.style.color = "#f87171"; 
-            msg.innerText = err.message; // Will now cleanly say "Email already registered"
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
         }
     });
 </script>

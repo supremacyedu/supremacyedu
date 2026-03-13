@@ -2,103 +2,204 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Supremacy Edu - RDE Registration</title>
+    <title>Supremacy Edu - RDE Signup</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body class="auth-page">
-    <div class="signup-card">
-        <a href="index.html" class="back-btn">&larr; Back</a>
-        
-        <h2>RDE Registration</h2>
-        <p>Apply to become a Referrer Development Executive</p>
 
-        <form id="rde-signup-form">
-            <div class="input-group"><input type="text" id="name" placeholder="Full Name" required></div>
-            <div class="input-group"><input type="tel" id="phone" placeholder="Phone Number" required></div>
-            <div class="input-group"><input type="email" id="email" placeholder="Email Address" required></div>
-            <div class="input-group"><input type="password" id="pass" placeholder="Create Password" required></div>
+    <div class="signup-card">
+        <a href="index.html" class="back-btn" style="margin-bottom: 25px;">&larr; Back to Website</a>
+
+        <h2>RDE Registration</h2>
+        <p>Step 1: Verify your phone number</p>
+
+        <div id="phone-section">
+            <div class="input-group">
+                <input type="tel" id="rde-phone" placeholder="Phone Number (10 digits)" required>
+            </div>
+            <button type="button" class="primary-btn" id="btn-send-otp">Send OTP</button>
+        </div>
+
+        <div id="otp-section" style="display: none; margin-top: 15px;">
+            <p style="color: #4ade80; font-size: 13px; margin-bottom: 10px;">OTP sent to your phone!</p>
+            <div class="input-group">
+                <input type="text" id="rde-otp" placeholder="Enter 6-digit OTP" required maxlength="6">
+            </div>
+            <button type="button" class="primary-btn" id="btn-verify-otp">Verify OTP</button>
+        </div>
+
+        <form id="signup-form" style="display: none; margin-top: 15px;">
+            <div class="input-group"><input type="text" id="rde-name" placeholder="Full Name" required></div>
+            <div class="input-group"><input type="email" id="rde-email" placeholder="Email Address" required></div>
+            <div class="input-group"><input type="text" id="referring-rde-code" placeholder="Referring RDE Code (e.g., RDE001A)" required></div>
+            <div class="input-group"><input type="password" id="rde-pass" placeholder="Create Password" required></div>
             
-            <div class="input-group"><input type="text" id="rde-code" placeholder="Referring RDE Code (e.g. RDE001A)" required></div>
+            <div class="options" style="margin-bottom: 20px; text-align: left; display: flex; align-items: center;">
+                <input type="checkbox" id="agree-tc" required style="width: auto; margin: 0 10px 0 0; cursor: pointer;">
+                <label for="agree-tc" style="color: var(--text-muted); font-size: 14px;">
+                    I agree to the <a href="terms.html" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: bold;">Terms & Conditions</a>
+                </label>
+            </div>
             
-            <button type="submit" class="primary-btn">Register as RDE</button>
+            <button type="submit" class="primary-btn" id="submit-btn">Complete RDE Sign Up</button>
         </form>
 
-        <div id="message" style="margin-top: 15px; text-align: center; font-size: 14px; display: none;"></div>
+        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
         
         <div class="login-link">
-            Already have an account? <a href="rde-login.html">Log in</a>
+            Already an RDE? <a href="rde-login.html">Log in here</a>
         </div>
     </div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    
+    // Replace with your exact Supabase URL and Anon Key
+    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+    const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-        document.getElementById('rde-signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const msg = document.getElementById('message');
-            msg.style.display = "block";
-            msg.style.color = "#38bdf8";
-            msg.innerText = "Processing registration...";
+    const msgBox = document.getElementById('message');
+    let verifiedPhone = ""; 
 
-            const name = document.getElementById('name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('pass').value;
-            const referringRde = document.getElementById('rde-code').value.trim().toUpperCase();
+    function showMessage(text, isError = false) {
+        msgBox.style.display = "block";
+        msgBox.style.backgroundColor = isError ? "rgba(248, 113, 113, 0.1)" : "rgba(56, 189, 248, 0.1)";
+        msgBox.style.color = isError ? "#f87171" : "#38bdf8"; 
+        msgBox.innerHTML = text;
+    }
 
-            try {
-                let userId = null;
+    // --- STEP 1: SEND OTP ---
+    document.getElementById('btn-send-otp').addEventListener('click', async () => {
+        const phone = document.getElementById('rde-phone').value.trim();
+        const btn = document.getElementById('btn-send-otp');
+        
+        if(phone.length < 10) {
+            showMessage("Please enter a valid phone number.", true);
+            return;
+        }
 
-                // 1. Try to create a brand new user
-                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
-                
-                if (authErr) {
-                    // 2. SMART BRIDGE: Catch the "already registered" error for existing Referrers
-                    if (authErr.message.toLowerCase().includes("already registered") || authErr.message.toLowerCase().includes("user already exists")) {
-                        msg.innerText = "Existing Referrer account found. Verifying password to upgrade...";
-                        
-                        // Try to log them in behind the scenes to prove they own the account
-                        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-                        
-                        if (signInErr) {
-                            throw new Error("Account exists, but password incorrect. Please use your existing Referrer password.");
-                        }
-                        userId = signInData.user.id; // Grab the existing ID!
-                    } else {
-                        throw authErr; // It's a real error (like a weak password)
-                    }
-                } else {
-                    userId = authData.user.id; // Brand new user ID
-                }
+        btn.disabled = true;
+        btn.innerText = "Sending...";
+        msgBox.style.display = "none";
 
-                // 3. Double check they don't ALREADY have an RDE profile
-                const { data: existingRde } = await supabase.from('rdes').select('id').eq('id', userId).maybeSingle();
-                if (existingRde) {
-                    throw new Error("You are already registered as an RDE. Please log in.");
-                }
+        try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone })
+            });
 
-                // 4. Insert the new RDE profile attached to their Auth ID
-                const { error: dbErr } = await supabase.from('rdes').insert([{
-                    id: userId,
-                    full_name: name,
-                    phone: phone,
-                    email: email,
-                    referred_by_rde: referringRde
-                }]);
-                
-                if (dbErr) throw dbErr;
+            const result = await response.json();
+            
+            if (!result.success) throw new Error(result.error || "Failed to send OTP.");
 
-                msg.style.color = "#4ade80";
-                msg.innerText = "Registration successful! Redirecting to login...";
-                setTimeout(() => { window.location.href = "rde-login.html"; }, 2000); 
+            document.getElementById('phone-section').style.display = 'none';
+            document.getElementById('otp-section').style.display = 'block';
+            document.querySelector('.signup-card p').innerText = "Step 2: Enter the 6-digit code";
+            
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+            btn.innerText = "Send OTP";
+        }
+    });
 
-            } catch (err) {
-                msg.style.color = "#f87171";
-                msg.innerText = err.message || "An error occurred during registration.";
+    // --- STEP 2: VERIFY OTP ---
+    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
+        const phone = document.getElementById('rde-phone').value.trim();
+        const otp = document.getElementById('rde-otp').value.trim();
+        const btn = document.getElementById('btn-verify-otp');
+
+        if(otp.length !== 6) {
+            showMessage("Please enter a valid 6-digit OTP.", true);
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Verifying...";
+        msgBox.style.display = "none";
+
+        try {
+            const { data, error } = await supabase
+                .from('otp_requests')
+                .select('*')
+                .eq('phone_number', phone)
+                .eq('otp_code', otp)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !data) throw new Error("Invalid OTP code.");
+            
+            if (new Date(data.expires_at) < new Date()) {
+                throw new Error("OTP has expired. Please refresh and try again.");
             }
-        });
-    </script>
+
+            await supabase.from('otp_requests').update({ is_verified: true }).eq('id', data.id);
+
+            verifiedPhone = phone; 
+            document.getElementById('otp-section').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'block';
+            document.querySelector('.signup-card p').innerText = "Step 3: Complete your executive profile";
+            
+            showMessage("Phone verified! Please fill out the rest of your details.", false);
+
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+            btn.innerText = "Verify OTP";
+        }
+    });
+
+    // --- STEP 3: COMPLETE SIGNUP & TRIGGER EMAIL ---
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        showMessage("Creating your executive account...", false);
+
+        const name = document.getElementById('rde-name').value.trim();
+        const email = document.getElementById('rde-email').value.trim();
+        const password = document.getElementById('rde-pass').value;
+        const referringRde = document.getElementById('referring-rde-code').value.trim().toUpperCase(); 
+
+        try {
+            // 1. Create user in Supabase Auth
+            const { data: authData, error: authErr } = await supabase.auth.signUp({ 
+                email, 
+                password,
+                options: { 
+                    // CRITICAL: Redirects them specifically to the RDE login portal after email click
+                    emailRedirectTo: window.location.origin + '/rde-login.html' 
+                }
+            });
+            if (authErr) throw authErr;
+
+            // 2. Insert profile into the RDES table (Note: 'full_name' column)
+            const { error: dbErr } = await supabase.from('rdes').insert([{
+                id: authData.user.id,
+                full_name: name,
+                phone: verifiedPhone,
+                email: email,
+                referred_by_rde: referringRde 
+            }]);
+            
+            if (dbErr) throw dbErr;
+
+            // 3. Update UI
+            msgBox.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
+            msgBox.style.color = "#4ade80";
+            msgBox.innerHTML = "Registration successful!<br><br><b>Please check your email to verify your RDE account</b> before logging in.";
+            document.getElementById('signup-form').reset();
+            document.getElementById('submit-btn').style.display = 'none';
+
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+        }
+    });
+</script>
 </body>
 </html>
