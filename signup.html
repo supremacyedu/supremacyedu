@@ -22,9 +22,11 @@
             <div class="input-group"><input type="text" id="regRdeCode" placeholder="RDE Code (e.g., RDE001A)" required></div>
             <div class="input-group"><input type="password" id="reg-pass" placeholder="Create Password" required></div>
             
-            <div class="options" style="gap: 10px;">
-                <input type="checkbox" id="agree-tc" required>
-                <label for="agree-tc">I agree to the <a href="#" style="color: var(--primary); text-decoration: none;">Terms & Conditions</a></label>
+            <div class="options" style="margin-bottom: 20px; text-align: left; display: flex; align-items: center;">
+                <input type="checkbox" id="agree-tc" required style="width: auto; margin: 0 10px 0 0; cursor: pointer;">
+                <label for="agree-tc" style="color: var(--text-muted); font-size: 14px;">
+                    I agree to the <a href="terms.html" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: bold;">Terms & Conditions</a>
+                </label>
             </div>
             
             <button type="submit" class="primary-btn">Sign Up</button>
@@ -49,49 +51,35 @@
         msg.style.color = "#38bdf8"; 
         msg.innerText = "Creating your account...";
 
-        const name = document.getElementById('reg-name').value.trim();
-        const phone = document.getElementById('reg-phone').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const rdeCode = document.getElementById('regRdeCode').value.trim();
-        const password = document.getElementById('reg-pass').value;
+        // 1. Grab all values including the new RDE Code
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('pass').value;
+            // Force uppercase so it matches the database formatting perfectly
+            const referringRde = document.getElementById('rde-code').value.trim().toUpperCase(); 
 
-        try {
-            // 1. Create the Auth Account 
-            const { data: authData, error: authErr } = await supabase.auth.signUp({ 
-                email, 
-                password 
-            });
-            
-            if (authErr) throw authErr;
+            try {
+                // 2. Create user in Supabase Auth
+                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+                if (authErr) throw authErr;
 
-            // NEW: Detect the Supabase "Fake User" Security Feature
-            if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
-                throw new Error("This email is already registered. Please log in.");
-            }
-
-            msg.innerText = "Saving profile details...";
-
-            // 2. FORCE INSERT INTO THE DATABASE DIRECTLY
-            const { error: dbErr } = await supabase.from('referrers').insert([
-                {
+                // 3. Insert profile into the referrers table WITH the RDE Code
+                const { error: dbErr } = await supabase.from('referrers').insert([{
                     id: authData.user.id,
                     name: name,
                     phone: phone,
-                    referred_by_rde: rdeCode,
-                    payment_status: 'unpaid'
-                }
-            ]);
+                    email: email,
+                    referred_by_rde: referringRde // Links this referrer to their RDE!
+                }]);
+                
+                if (dbErr) throw dbErr;
 
-            if (dbErr) throw new Error(dbErr.message);
+                msg.style.color = "#4ade80";
+                msg.innerText = "Registration successful! Redirecting to login...";
+                setTimeout(() => { window.location.href = "login.html"; }, 2000); 
 
-            // 3. Success!
-            msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
-            msg.style.color = "#4ade80"; 
-            msg.innerText = "Account fully created! Redirecting to login...";
-            
-            setTimeout(() => { window.location.href = "login.html"; }, 1500);
-
-        } catch (err) {
+            } catch (err) {
             msg.style.backgroundColor = "rgba(248, 113, 113, 0.1)"; 
             msg.style.color = "#f87171"; 
             msg.innerText = err.message; // Will now cleanly say "Email already registered"

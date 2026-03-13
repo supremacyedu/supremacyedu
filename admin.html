@@ -2,229 +2,344 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>System Admin - Restricted Access</title>
+    <title>Supremacy Edu - Master Command</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="auth.css">
-    <style>
-        body { background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    <link rel="stylesheet" href="../auth.css"> <style>
+        body { background-color: #050a14; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .lock-screen { background: #0f172a; padding: 40px; border-radius: 20px; border: 1px solid #1e293b; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 0 50px rgba(0, 255, 255, 0.1); }
+        .lock-screen h2 { color: #f87171; letter-spacing: 2px; text-transform: uppercase; font-size: 20px; margin-bottom: 20px; }
+        .admin-input { width: 100%; padding: 15px; background: #050a14; border: 1px solid #334155; color: white; border-radius: 8px; margin-bottom: 20px; text-align: center; font-size: 16px; font-family: monospace; }
+        .admin-input:focus { outline: none; border-color: #f87171; box-shadow: 0 0 15px rgba(248, 113, 113, 0.3); }
+        .alert-btn { background: #ef4444; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .alert-btn:hover { background: #dc2626; box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
         
-        /* THE LOCK SCREEN OVERLAY */
-        #admin-lock-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-            background: #0f172a; z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-        }
-        .admin-badge { display: inline-block; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
-        .lock-card { background: #1e293b; padding: 40px; border-radius: 12px; border-top: 4px solid #ef4444; width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.8); text-align: center; }
+        /* The actual dashboard (hidden by default) */
+        #admin-workspace { display: none; width: 100%; height: 100vh; background: var(--bg-main); padding: 30px; box-sizing: border-box; }
+
+        /* --- Master Admin UI Styles --- */
+        .admin-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #1e293b; padding-bottom: 15px; }
+        .admin-toggles { display: flex; gap: 15px; }
+        .toggle-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .toggle-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+        .action-btn { background: #4ade80; color: #0f172a; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .action-btn:hover { background: #22c55e; box-shadow: 0 0 15px rgba(74, 222, 128, 0.4); }
+        .danger-btn { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
+        /* Data Tables */
+        .admin-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; overflow-x: auto; }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .admin-table th { padding: 15px; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 13px; text-transform: uppercase; }
+        .admin-table td { padding: 15px; border-bottom: 1px solid #1e293b; color: white; font-size: 14px; }
+        .clickable-name { color: #38bdf8; cursor: pointer; font-weight: bold; text-decoration: underline; }
+
+        /* Deep-Dive Modals */
+        .admin-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 10, 20, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; backdrop-filter: blur(8px); }
+        .modal-box { background: #0f172a; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 700px; padding: 30px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; color: white; }
+        .close-modal { background: transparent; color: #94a3b8; border: none; font-size: 24px; cursor: pointer; }
         
-        /* THE DASHBOARD (Hidden by Default) */
-        #admin-dashboard { display: none; }
-        .admin-navbar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 30px; border-bottom: 1px solid var(--border-color); }
-        .admin-navbar h2 { margin: 0; color: #ef4444; font-size: 20px; letter-spacing: 1px; }
-        
-        .admin-container { padding: 40px; max-width: 1400px; margin: 0 auto; }
-        .header-section { margin-bottom: 30px; }
-        .header-section h1 { font-size: 28px; margin: 0 0 10px 0; }
-        
-        /* Table Styles */
-        .table-wrapper { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: rgba(0, 0, 0, 0.3); padding: 15px; font-size: 13px; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
-        td { padding: 15px; font-size: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }
-        tr:hover { background: rgba(59, 130, 246, 0.05); }
-        
-        /* Badges & Buttons */
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-paid { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .badge-review { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-        .badge-approved { background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
-        .badge-rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        
-        .doc-link { display: inline-block; background: #334155; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; margin: 2px; border: 1px solid #475569; }
-        .doc-link:hover { background: var(--primary); border-color: var(--primary); }
-        
-        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; margin-right: 5px; }
-        .btn-approve { background: #10b981; color: white; }
-        .btn-reject { background: transparent; color: #ef4444; border: 1px solid #ef4444; }
+        /* Stats Grid for Modals */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; text-align: center; }
+        .stat-card span { display: block; color: #94a3b8; font-size: 12px; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-card strong { color: white; font-size: 20px; }
+        .highlight-stat { color: #4ade80 !important; }
     </style>
 </head>
 <body>
 
-    <div id="admin-lock-screen">
-        <div class="lock-card">
-            <div class="admin-badge">Restricted Access</div>
-            <h2 style="color: white; margin-top: 0; margin-bottom: 5px;">Admin Gateway</h2>
-            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">Enter master credentials to proceed.</p>
+    <div class="lock-screen" id="lock-screen">
+        <h2>Restricted Access</h2>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 30px;">Master Administrator Login</p>
+        
+        <form id="admin-login-form">
+            <input type="email" id="admin-email" class="admin-input" placeholder="Admin Email" required>
+            <input type="password" id="admin-pass" class="admin-input" placeholder="Passkey" required>
+            <button type="submit" class="alert-btn" id="login-btn">Authenticate</button>
+        </form>
+        <div id="auth-msg" style="margin-top: 15px; color: #f87171; font-size: 14px; display: none;"></div>
+    </div>
 
-            <form id="admin-login-form">
-                <div style="margin-bottom: 15px;"><input type="email" id="admin-email" placeholder="Admin Email" required style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid #334155; color: white;"></div>
-                <div style="margin-bottom: 15px;"><input type="password" id="admin-pass" placeholder="Master Password" required style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid #334155; color: white;"></div>
-                
-                <button type="submit" id="login-btn" style="width: 100%; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Initialize Secure Link</button>
-            </form>
+    <div id="admin-workspace" style="display: none; width: 100%; min-height: 100vh; background: #050a14; padding: 40px; box-sizing: border-box;">
+        
+        <div class="admin-nav">
+            <div>
+                <h1 style="color: white; margin: 0 0 5px 0;">Master Command</h1>
+                <p style="color: #4ade80; margin: 0; font-size: 14px; font-weight: bold;">System Online</p>
+            </div>
+            <div class="admin-toggles">
+                <button class="toggle-btn active" id="view-rdes" onclick="switchTab('rdes')">RDEs Network</button>
+                <button class="toggle-btn" id="view-refs" onclick="switchTab('referrers')">Referrers List</button>
+                <button class="action-btn" onclick="openStudentModal()">+ Log Student Fee</button>
+                <button class="toggle-btn" style="border-color: #ef4444; color: #ef4444;" onclick="logoutAdmin()">Logout</button>
+            </div>
+        </div>
 
-            <div id="login-msg" style="margin-top: 15px; font-size: 13px; font-weight: bold; display: none;"></div>
+        <div class="admin-panel">
+            <table class="admin-table">
+                <thead id="table-head">
+                    </thead>
+                <tbody id="table-body">
+                    </tbody>
+            </table>
         </div>
     </div>
 
-    <div id="admin-dashboard">
-        <nav class="admin-navbar">
-            <h2>Supremacy Edu | Admin</h2>
-            <button class="action-btn btn-reject" onclick="logoutAdmin()">End Session</button>
-        </nav>
-
-        <div class="admin-container">
-            <div class="header-section">
-                <h1>RDE Candidates Pipeline</h1>
-                <p style="color: var(--text-muted);">Manage applications, verify payments, and review documents.</p>
+    <div id="profile-modal" class="admin-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="modal-name">User Name</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
             </div>
+            
+            <div class="stats-grid" id="modal-stats">
+                </div>
 
-            <div class="table-wrapper">
-                <table id="applications-table">
-                    <thead>
-                        <tr>
-                            <th>Candidate</th>
-                            <th>Contact</th>
-                            <th>Referred By</th>
-                            <th>Docs</th>
-                            <th>Payment</th>
-                            <th>RDE Code</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <tr><td colspan="8" style="text-align: center; padding: 40px; color: #38bdf8;">Loading secure data vault...</td></tr>
-                    </tbody>
+            <h3 style="color: #38bdf8; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 5px;">Sub-Network & Admissions</h3>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="admin-table" style="font-size: 13px;">
+                    <thead id="sub-table-head"></thead>
+                    <tbody id="sub-table-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <div id="student-modal" class="admin-modal">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Log Student Fee</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="student-form">
+                <input type="text" id="stu-name" class="admin-input" placeholder="Student Full Name" required>
+                <input type="number" id="stu-fee" class="admin-input" placeholder="Course Fee Paid (₹)" required>
+                <input type="text" id="stu-ref-code" class="admin-input" placeholder="Referrer Code (e.g. REF001)" required>
+                <p style="color: #94a3b8; font-size: 12px; margin-bottom: 15px; text-align: center;">Commission will be auto-calculated.</p>
+                <button type="submit" class="action-btn" style="width: 100%;">Process Admission</button>
+            </form>
+        </div>
+    </div>
+
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+        // PASTE YOUR SUPABASE KEYS HERE
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsc3pxYXN2cXVianVqa293cnRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjQxOTUsImV4cCI6MjA4NzcwMDE5NX0.BBgj6hx8OD8GneOdali0dLwR9Yrpo6_kqfM-Iwo0G5o');
 
-        // Check Session on Page Load
-        async function checkInitialSession() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                verifyAdminAndLoad(session.user.id);
-            }
-            // If no session, the lock screen just stays visible naturally.
-        }
-
-        // Handle the Login Form
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const msg = document.getElementById('login-msg');
+            const msg = document.getElementById('auth-msg');
             const btn = document.getElementById('login-btn');
             
-            msg.style.display = "block"; msg.style.color = "#38bdf8"; msg.innerText = "Authenticating...";
+            msg.style.display = "block";
+            msg.style.color = "#38bdf8";
+            msg.innerText = "Verifying credentials...";
             btn.disabled = true;
 
             const email = document.getElementById('admin-email').value.trim();
             const password = document.getElementById('admin-pass').value;
 
             try {
+                // 1. Authenticate the user
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
                 if (authError) throw new Error("Invalid credentials.");
 
-                verifyAdminAndLoad(authData.user.id);
+                // 2. CHECK THE ADMINS TABLE - The ultimate security block
+                const { data: adminData, error: adminError } = await supabase
+                    .from('admins')
+                    .select('role')
+                    .eq('id', authData.user.id)
+                    .single();
+
+                if (adminError || !adminData) {
+                    // Kick them out immediately if they aren't in the admins table
+                    await supabase.auth.signOut();
+                    throw new Error("UNAUTHORIZED: This incident has been logged.");
+                }
+
+                // 3. Success! Hide lock screen, show workspace
+                document.getElementById('lock-screen').style.display = 'none';
+                document.body.style.display = 'block'; // Reset flexbox centering
+                document.getElementById('admin-workspace').style.display = 'block';
+
+                // We will call the data fetching functions for Phase 2 here
+                console.log("Welcome, Master Admin.");
+
+                // --- INJECT THIS INSIDE YOUR EXISTING LOGIN TRY-BLOCK ---
+                window.globalAdminData = { rdes: [], referrers: [], admissions: [] };
+                await fetchMasterData();
+                window.switchTab('rdes'); // Load RDEs by default
 
             } catch (err) {
-                msg.style.color = "#ef4444"; msg.innerText = err.message;
+                msg.style.color = "#f87171";
+                msg.innerText = err.message;
                 btn.disabled = false;
             }
         });
 
-        // The Gatekeeper Function
-        async function verifyAdminAndLoad(userId) {
-            const msg = document.getElementById('login-msg');
+        // --- 1. DATA FETCHING ---
+        async function fetchMasterData() {
+            // Fetch everything at once to make the dashboard lightning fast
+            const { data: rdes } = await supabase.from('rdes').select('*').order('created_at', { ascending: false });
+            const { data: refs } = await supabase.from('referrers').select('*').order('created_at', { ascending: false });
+            const { data: admissions } = await supabase.from('student_admissions').select('*').order('created_at', { ascending: false });
             
-            try {
-                // Check if they are in the VIP platform_admins table
-                const { data: adminData, error } = await supabase.from('platform_admins').select('id').eq('id', userId).maybeSingle();
-                
-                if (!adminData) {
-                    await supabase.auth.signOut();
-                    throw new Error("ACCESS DENIED: Administrative privileges not found.");
-                }
-
-                // If verified, lower the wall!
-                document.getElementById('admin-lock-screen').style.display = 'none';
-                document.getElementById('admin-dashboard').style.display = 'block';
-                
-                fetchApplications();
-
-            } catch (err) {
-                if(msg) { msg.style.display = "block"; msg.style.color = "#ef4444"; msg.innerText = err.message; }
-                document.getElementById('login-btn').disabled = false;
-            }
+            window.globalAdminData.rdes = rdes || [];
+            window.globalAdminData.referrers = refs || [];
+            window.globalAdminData.admissions = admissions || [];
         }
 
-        // Fetch Data for the Table
-        async function fetchApplications() {
-            const { data: apps, error } = await supabase.from('hiring_applications').select('*').order('created_at', { ascending: false });
+        // --- 2. TOGGLE UI & TABLE RENDERING ---
+        window.switchTab = (tab) => {
+            document.getElementById('view-rdes').classList.remove('active');
+            document.getElementById('view-refs').classList.remove('active');
+            
+            const head = document.getElementById('table-head');
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
 
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-
-            if (error || !apps) {
-                tbody.innerHTML = `<tr><td colspan="8" style="color:#ef4444; text-align:center;">Failed to load data.</td></tr>`;
-                return;
-            }
-
-            if (apps.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 30px; color: #94a3b8;">No applications found in the vault.</td></tr>`;
-                return;
-            }
-
-            apps.forEach(app => {
-                const payBadgeClass = app.payment_status === 'paid' ? 'badge-paid' : 'badge-pending';
-                let statusBadgeClass = 'badge-pending';
-                if (app.application_status === 'under_review') statusBadgeClass = 'badge-review';
-                if (app.application_status === 'approved') statusBadgeClass = 'badge-approved';
-                if (app.application_status === 'rejected') statusBadgeClass = 'badge-rejected';
-
-                const docLinks = [];
-                if (app.id_proof_url) docLinks.push(`<a href="${app.id_proof_url}" target="_blank" class="doc-link">ID</a>`);
-                if (app.address_proof_url) docLinks.push(`<a href="${app.address_proof_url}" target="_blank" class="doc-link">Add.</a>`);
-                if (app.education_doc_url) docLinks.push(`<a href="${app.education_doc_url}" target="_blank" class="doc-link">Edu</a>`);
-                if (app.resume_url) docLinks.push(`<a href="${app.resume_url}" target="_blank" class="doc-link">CV</a>`);
-                if (app.photo_url) docLinks.push(`<a href="${app.photo_url}" target="_blank" class="doc-link">Img</a>`);
+            if (tab === 'rdes') {
+                document.getElementById('view-rdes').classList.add('active');
+                head.innerHTML = `<tr><th>Name</th><th>RDE Code</th><th>Phone</th><th>Status</th><th>Actions</th></tr>`;
                 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${app.full_name}</strong><br><span style="font-size:12px; color:#94a3b8;">${new Date(app.created_at).toLocaleDateString()}</span></td>
-                    <td>${app.email}<br><span style="font-size:12px; color:#94a3b8;">${app.phone}</span></td>
-                    <td><strong style="color: #38bdf8;">${app.referred_by_code || 'Direct'}</strong></td>
-                    <td>${docLinks.join('') || '<span style="color:#64748b; font-size:12px;">No docs</span>'}</td>
-                    <td><span class="badge ${payBadgeClass}">${app.payment_status.toUpperCase()}</span></td>
-                    <td><strong style="color: #34d399; letter-spacing: 1px;">${app.generated_rde_code || '---'}</strong></td>
-                    <td><span class="badge ${statusBadgeClass}">${app.application_status.replace('_', ' ').toUpperCase()}</span></td>
-                    <td>
-                        ${app.application_status !== 'approved' ? `<button class="action-btn btn-approve" onclick="updateStatus('${app.id}', 'approved')">Approve</button>` : ''}
-                        ${app.application_status !== 'rejected' ? `<button class="action-btn btn-reject" onclick="updateStatus('${app.id}', 'rejected')">Reject</button>` : ''}
-                    </td>
+                window.globalAdminData.rdes.forEach(rde => {
+                    body.innerHTML += `
+                        <tr>
+                            <td class="clickable-name" onclick="openProfile('${rde.id}', 'rde')">${rde.full_name}</td>
+                            <td style="color: #4ade80; font-family: monospace;">${rde.rde_code || 'Pending'}</td>
+                            <td>${rde.phone}</td>
+                            <td>${rde.payment_status}</td>
+                            <td><button class="danger-btn" onclick="deleteUser('${rde.id}', 'rdes')">Delete</button></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                document.getElementById('view-refs').classList.add('active');
+                head.innerHTML = `<tr><th>Name</th><th>Under RDE</th><th>Phone</th><th>Status</th><th>Actions</th></tr>`;
+                
+                window.globalAdminData.referrers.forEach(ref => {
+                    body.innerHTML += `
+                        <tr>
+                            <td class="clickable-name" onclick="openProfile('${ref.id}', 'referrer')">${ref.name}</td>
+                            <td style="color: #38bdf8; font-family: monospace;">${ref.referred_by_rde || 'None'}</td>
+                            <td>${ref.phone}</td>
+                            <td>${ref.payment_status}</td>
+                            <td><button class="danger-btn" onclick="deleteUser('${ref.id}', 'referrers')">Delete</button></td>
+                        </tr>
+                    `;
+                });
+            }
+        };
+
+        // --- 3. THE DEEP-DIVE MODALS & SALARY MATH ---
+        window.openProfile = (id, type) => {
+            document.getElementById('profile-modal').style.display = 'flex';
+            const statsGrid = document.getElementById('modal-stats');
+            const subHead = document.getElementById('sub-table-head');
+            const subBody = document.getElementById('sub-table-body');
+            
+            if (type === 'rde') {
+                const rde = window.globalAdminData.rdes.find(r => r.id === id);
+                document.getElementById('modal-name').innerText = `RDE: ${rde.full_name} (${rde.rde_code})`;
+                
+                // Calculate working days
+                const joinDate = new Date(rde.created_at);
+                const daysWorked = Math.max(1, Math.floor((new Date() - joinDate) / (1000 * 60 * 60 * 24)));
+                
+                // Find sub-referrers to calculate total points generated by their network
+                const network = window.globalAdminData.referrers.filter(ref => ref.referred_by_rde === rde.rde_code && ref.payment_status === 'paid');
+                
+                // Placeholder math for points (Assuming average 5 points per paid referrer for this quick admin view)
+                // In production, we would map the exact plan prices like we did on the RDE dashboard.
+                const totalPoints = network.length * 5; 
+                
+                // The Salary Rule: 100 points/day = 40,000 month.
+                const avgPointsPerDay = (totalPoints / daysWorked).toFixed(1);
+                let estSalary = ((avgPointsPerDay / 100) * 40000).toFixed(0);
+                if (estSalary > 40000) estSalary = 40000; // Cap at max salary
+
+                statsGrid.innerHTML = `
+                    <div class="stat-card"><span>Days Active</span><strong>${daysWorked}</strong></div>
+                    <div class="stat-card"><span>Network Size</span><strong>${network.length} Referrers</strong></div>
+                    <div class="stat-card"><span>Avg Daily Points</span><strong class="highlight-stat">${avgPointsPerDay} pts</strong></div>
+                    <div class="stat-card" style="grid-column: span 3;"><span>Est. Monthly Salary Generated</span><strong class="highlight-stat">₹${estSalary}</strong></div>
                 `;
-                tbody.appendChild(tr);
-            });
-        }
 
-        window.updateStatus = async (userId, newStatus) => {
-            if (!confirm(`Mark application as ${newStatus.toUpperCase()}?`)) return;
-            await supabase.from('hiring_applications').update({ application_status: newStatus }).eq('id', userId);
-            fetchApplications();
+                subHead.innerHTML = `<tr><th>Referrer Name</th><th>Joined</th><th>Status</th></tr>`;
+                subBody.innerHTML = students.map(s => `<tr><td>${s.student_name}</td><td>₹${s.course_fee}</td><td class="highlight-stat">₹${Number(s.commission_generated).toFixed(2)}</td></tr>`).join('');
+                
+            } else if (type === 'referrer') {
+                const ref = window.globalAdminData.referrers.find(r => r.id === id);
+                // Assuming Referrers have a 'ref_code' column or we use their ID
+                document.getElementById('modal-name').innerText = `Referrer: ${ref.name}`;
+                
+                // Find students attached to this referrer
+                // NOTE: We match student_admissions.referrer_code. Update this logic based on your exact Referrer code column name.
+                const students = window.globalAdminData.admissions.filter(s => s.referrer_code === ref.id); // Or ref.ref_code if you created one
+                
+                let totalCommission = students.reduce((sum, s) => sum + Number(s.commission_generated), 0);
+
+                statsGrid.innerHTML = `
+                    <div class="stat-card"><span>Total Students</span><strong>${students.length}</strong></div>
+                    <div class="stat-card"><span>Status</span><strong>${ref.payment_status}</strong></div>
+                    <div class="stat-card"><span>Total Commission</span><strong class="highlight-stat">₹${totalCommission.toFixed(2)}</strong></div>
+                `;
+
+                subHead.innerHTML = `<tr><th>Student Name</th><th>Course Fee</th><th>Commission Generated</th></tr>`;
+                subBody.innerHTML = students.map(s => `<tr><td>${s.student_name}</td><td>₹${s.course_fee}</td><td class="highlight-stat">₹${s.commission_generated}</td></tr>`).join('');
+            }
+        };
+
+        // --- 4. STUDENT ADMISSION LOGGING ---
+        window.openStudentModal = () => document.getElementById('student-modal').style.display = 'flex';
+        
+        document.getElementById('student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('stu-name').value;
+            const fee = parseFloat(document.getElementById('stu-fee').value);
+            const refCode = document.getElementById('stu-ref-code').value;
+            
+            // Example Rule: Referrers get 20% commission on the student fee
+            const commission = fee * 0.20; 
+
+            try {
+                const { error } = await supabase.from('student_admissions').insert([{
+                    student_name: name,
+                    course_fee: fee,
+                    referrer_code: refCode,
+                    commission_generated: commission
+                }]);
+                
+                if (error) throw error;
+                alert("Student logged and commission generated!");
+                closeModals();
+                await fetchMasterData(); // Refresh data
+            } catch (err) {
+                alert("Error logging student: " + err.message);
+            }
+        });
+
+        // --- UTILS ---
+        window.closeModals = () => document.querySelectorAll('.admin-modal').forEach(m => m.style.display = 'none');
+        
+        window.deleteUser = async (id, table) => {
+            if (confirm(`CRITICAL WARNING: Are you sure you want to permanently delete this ${table} profile? This cannot be undone.`)) {
+                // Delete from DB. Because of foreign keys, you may also need to delete from auth.users via an Edge Function in production.
+                const { error } = await supabase.from(table).delete().eq('id', id);
+                if (error) alert("Error: " + error.message);
+                else {
+                    alert("User deleted.");
+                    await fetchMasterData();
+                    window.switchTab(table === 'rdes' ? 'rdes' : 'referrers');
+                }
+            }
         };
 
         window.logoutAdmin = async () => {
             await supabase.auth.signOut();
-            window.location.reload(); // Reloads page, instantly dropping the lock screen wall back down
+            window.location.reload();
         };
-
-        checkInitialSession();
     </script>
 </body>
 </html>
