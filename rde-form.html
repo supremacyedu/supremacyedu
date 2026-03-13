@@ -110,28 +110,18 @@
 
         let currentUser = null;
 
-        // 1. Authenticate the user before they can see the form
         async function checkSession() {
             const { data: { session }, error } = await supabase.auth.getSession();
-            if (error || !session) {
-                window.location.replace('applicant-login.html');
-            } else {
-                currentUser = session.user;
-            }
+            if (error || !session) window.location.replace('rde-login.html');
+            else currentUser = session.user;
         }
         checkSession();
 
-        // Helper function to upload a file and return its storage path
         async function uploadDocument(file, folderName, documentType) {
-            // Creates a path like:  USER_ID/id_proof_16789012.pdf
             const fileExt = file.name.split('.').pop();
             const fileName = `${documentType}_${Date.now()}.${fileExt}`;
             const filePath = `${folderName}/${fileName}`;
-
-            const { data, error } = await supabase.storage
-                .from('hiring_documents')
-                .upload(filePath, file);
-
+            const { error } = await supabase.storage.from('hiring_documents').upload(filePath, file);
             if (error) throw new Error(`Failed to upload ${documentType}: ${error.message}`);
             return filePath;
         }
@@ -148,8 +138,6 @@
             btn.disabled = true;
 
             const bankUpi = document.getElementById('bank-upi').value.trim();
-            
-            // Get all files
             const idFile = document.getElementById('doc-id').files[0];
             const addressFile = document.getElementById('doc-address').files[0];
             const eduFile = document.getElementById('doc-edu').files[0];
@@ -157,18 +145,15 @@
             const photoFile = document.getElementById('doc-photo').files[0];
 
             try {
-                // 2. Upload all files to the user's dedicated, secure folder
                 const folderId = currentUser.id;
-                
-                // We run these uploads sequentially to ensure stability
                 const idPath = await uploadDocument(idFile, folderId, 'id_proof');
                 const addressPath = await uploadDocument(addressFile, folderId, 'address_proof');
                 const eduPath = await uploadDocument(eduFile, folderId, 'education_doc');
                 const resumePath = await uploadDocument(resumeFile, folderId, 'resume');
                 const photoPath = await uploadDocument(photoFile, folderId, 'photo');
 
-                // 3. Update the database row with the file paths and bank details
-                const { error: dbErr } = await supabase.from('hiring_applications')
+                // Update unified 'rdes' table
+                const { error: dbErr } = await supabase.from('rdes')
                     .update({
                         bank_or_upi: bankUpi,
                         id_proof_url: idPath,
@@ -176,18 +161,16 @@
                         education_doc_url: eduPath,
                         resume_url: resumePath,
                         photo_url: photoPath,
-                        application_status: 'documents_submitted' // Advance their status
+                        application_status: 'documents_submitted' 
                     })
                     .eq('id', currentUser.id);
 
                 if (dbErr) throw dbErr;
 
-                // 4. Success! Send them to the Activation Payment gateway (Milestone 5)
                 msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
                 msg.style.color = "#4ade80";
                 msg.innerText = "Documents secured successfully! Redirecting to Dashboard Activation...";
-                
-                setTimeout(() => { window.location.href = "applicant-dashboard.html"; }, 2000);
+                setTimeout(() => { window.location.href = "rde-dashboard.html"; }, 2000);
 
             } catch (err) {
                 msg.style.backgroundColor = "var(--error-bg)";

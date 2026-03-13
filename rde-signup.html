@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - RDE Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+    <div class="signup-card">
+        <a href="index.html" class="back-btn">&larr; Back</a>
+        
+        <h2>RDE Registration</h2>
+        <p>Apply to become a Referrer Development Executive</p>
+
+        <form id="rde-signup-form">
+            <div class="input-group"><input type="text" id="name" placeholder="Full Name" required></div>
+            <div class="input-group"><input type="tel" id="phone" placeholder="Phone Number" required></div>
+            <div class="input-group"><input type="email" id="email" placeholder="Email Address" required></div>
+            <div class="input-group"><input type="password" id="pass" placeholder="Create Password" required></div>
+            
+            <div class="input-group"><input type="text" id="rde-code" placeholder="Referring RDE Code (e.g. RDE001A)" required></div>
+            
+            <button type="submit" class="primary-btn">Register as RDE</button>
+        </form>
+
+        <div id="message" style="margin-top: 15px; text-align: center; font-size: 14px; display: none;"></div>
+        
+        <div class="login-link">
+            Already have an account? <a href="rde-login.html">Log in</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://dlszqasvqubjujkowrtl.supabase.co', 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM');
+
+        document.getElementById('rde-signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('message');
+            msg.style.display = "block";
+            msg.style.color = "#38bdf8";
+            msg.innerText = "Processing registration...";
+
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('pass').value;
+            const referringRde = document.getElementById('rde-code').value.trim().toUpperCase();
+
+            try {
+                let userId = null;
+
+                // 1. Try to create a brand new user
+                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+                
+                if (authErr) {
+                    // 2. SMART BRIDGE: Catch the "already registered" error for existing Referrers
+                    if (authErr.message.toLowerCase().includes("already registered") || authErr.message.toLowerCase().includes("user already exists")) {
+                        msg.innerText = "Existing Referrer account found. Verifying password to upgrade...";
+                        
+                        // Try to log them in behind the scenes to prove they own the account
+                        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+                        
+                        if (signInErr) {
+                            throw new Error("Account exists, but password incorrect. Please use your existing Referrer password.");
+                        }
+                        userId = signInData.user.id; // Grab the existing ID!
+                    } else {
+                        throw authErr; // It's a real error (like a weak password)
+                    }
+                } else {
+                    userId = authData.user.id; // Brand new user ID
+                }
+
+                // 3. Double check they don't ALREADY have an RDE profile
+                const { data: existingRde } = await supabase.from('rdes').select('id').eq('id', userId).maybeSingle();
+                if (existingRde) {
+                    throw new Error("You are already registered as an RDE. Please log in.");
+                }
+
+                // 4. Insert the new RDE profile attached to their Auth ID
+                const { error: dbErr } = await supabase.from('rdes').insert([{
+                    id: userId,
+                    full_name: name,
+                    phone: phone,
+                    email: email,
+                    referred_by_rde: referringRde
+                }]);
+                
+                if (dbErr) throw dbErr;
+
+                msg.style.color = "#4ade80";
+                msg.innerText = "Registration successful! Redirecting to login...";
+                setTimeout(() => { window.location.href = "rde-login.html"; }, 2000); 
+
+            } catch (err) {
+                msg.style.color = "#f87171";
+                msg.innerText = err.message || "An error occurred during registration.";
+            }
+        });
+    </script>
+</body>
+</html>

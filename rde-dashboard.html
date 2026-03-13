@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - RDE Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="auth.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        /* --- 1. Global & Layout Variables --- */
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.9); padding: 15px 30px; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); }
+        .navbar h2 { margin: 0; color: white; font-size: 20px; }
+        .nav-buttons { display: flex; gap: 15px; }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        #main-dashboard { padding: 40px 20px; max-width: 1200px; margin: 0 auto; transition: filter 0.3s; }
+        .blurred { filter: blur(10px); pointer-events: none; user-select: none; }
+        
+        .dash-header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .dash-header h1 { font-size: 28px; margin-bottom: 5px; color: white; }
+        
+        .generated-code-box { background: rgba(16, 185, 129, 0.1); border: 1px dashed #34d399; padding: 10px 20px; border-radius: 10px; display: inline-block; }
+        .generated-code-box span { font-size: 18px; font-weight: bold; color: #34d399; letter-spacing: 2px; margin-left: 10px; }
+
+        /* --- 2. Points Tracker --- */
+        .points-tracker { background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(15, 23, 42, 0.8)); border: 1px solid var(--primary); padding: 25px; border-radius: 16px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .points-info h3 { margin: 0; color: #38bdf8; font-size: 18px; }
+        .points-info p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
+        .points-score { font-size: 42px; font-weight: bold; color: white; }
+        .points-score span { font-size: 18px; color: #94a3b8; font-weight: normal; }
+        
+        .progress-bar-bg { width: 100%; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; margin-top: 15px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #4ade80; width: 0%; transition: width 1s ease-in-out; }
+
+        /* --- 3. Chart Panel Styles --- */
+        .chart-panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; margin-bottom: 25px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .chart-header h3 { margin: 0; color: white; font-size: 18px; }
+        .chart-filters { display: flex; gap: 10px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .chart-filters button { background: transparent; border: none; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
+        .chart-filters button.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+
+        /* --- 4. Detailed Dashboard UI --- */
+        .dashboard-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+        @media (max-width: 900px) { .dashboard-layout { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
+        .panel-header h3 { margin: 0; color: white; font-size: 18px; }
+        .count-badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { text-align: left; padding: 12px; color: var(--text-muted); font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .data-table td { padding: 15px 12px; color: white; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .plan-tag { background: rgba(245, 158, 11, 0.1); color: #fbbf24; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .pts-tag { color: #4ade80; font-weight: bold; }
+
+        /* --- 5. Compact RDEs List (Sidebar) --- */
+        .rde-list { list-style: none; padding: 0; margin: 0; }
+        .rde-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rde-item:last-child { border-bottom: none; }
+        .rde-info h4 { margin: 0 0 4px 0; color: white; font-size: 14px; }
+        .rde-info p { margin: 0; color: var(--text-muted); font-size: 12px; }
+        .rde-code-badge { background: rgba(16, 185, 129, 0.1); border: 1px dashed #34d399; color: #34d399; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        
+        .empty-state { text-align: center; color: var(--text-muted); font-size: 14px; padding: 30px 0; font-style: italic; }
+
+        /* --- 6. Modals --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--bg-card); padding: 30px; border-radius: 20px; border: 1px solid var(--border-color); width: 100%; max-width: 450px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        .modal-content h2 { color: white; margin-top: 0; }
+        .modal-content p { color: var(--text-muted); margin-bottom: 25px; line-height: 1.5; }
+        .fee-amount { font-size: 36px; font-weight: bold; color: var(--primary); margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2>Supremacy Edu Careers</h2>
+        <div class="nav-buttons">
+            <button class="btn-danger" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div id="main-dashboard" class="blurred">
+        <div class="dash-header">
+            <div>
+                <h1>Welcome, <span id="display-name">RDE</span></h1>
+                <div class="generated-code-box">
+                    Official RDE Code: <span id="display-rde-code">Locked</span>
+                </div>
+            </div>
+            <button class="primary-btn" style="width: auto; padding: 10px 20px; font-size: 14px; height: fit-content;" onclick="generateAppointmentLetter()">📄 Offer Letter</button>
+        </div>
+
+        <div class="points-tracker">
+            <div class="points-info">
+                <h3>Today's Target Progress</h3>
+                <p>Reach 2.0 points daily to secure your monthly salary.</p>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="daily-progress"></div>
+                </div>
+            </div>
+            <div class="points-score">
+                <span id="today-points">0.0</span> <span>/ 2.0 pts</span>
+            </div>
+        </div>
+
+        <div class="chart-panel">
+            <div class="chart-header">
+                <h3>Points Earned</h3>
+                <div class="chart-filters" id="chart-controls">
+                    <button class="active" data-range="daily">Daily</button>
+                    <button data-range="weekly">Weekly</button>
+                    <button data-range="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-layout">
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Direct Referrers (Paid Only)</h3>
+                    <div class="count-badge"><span id="ref-count">0</span> Active</div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Date Joined</th>
+                                <th>Plan Purchased</th>
+                                <th>Points Earned</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referrers-table-body">
+                            <tr><td colspan="4" class="empty-state">Loading referrers...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Recruited RDEs (Paid Only)</h3>
+                    <div class="count-badge"><span id="rde-count">0</span> Active</div>
+                </div>
+                <ul class="rde-list" id="rdes-list-body">
+                    <li class="empty-state">Loading RDEs...</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="payment-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Dashboard Activation</h2>
+            <p>To complete your application and generate your official appointment letter & RDE Code, a one-time processing fee is required.</p>
+            <div class="fee-amount">₹120</div>
+            <button class="primary-btn" onclick="payActivationFee()">Pay Securely via Razorpay</button>
+            <div id="pay-msg" style="margin-top: 15px; font-size: 13px; color: #f87171; display: none;"></div>
+        </div>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color: #4ade80;">Payment Successful!</h2>
+            <p>Your dashboard is now unlocked and your unique RDE Code has been generated.</p>
+            <button class="primary-btn" onclick="unlockDashboard()">Enter Dashboard</button>
+        </div>
+    </div>
+
+    <script type="module" src="rde-dashboard.js"></script>
+</body>
+</html>

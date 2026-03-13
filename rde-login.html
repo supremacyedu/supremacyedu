@@ -24,7 +24,7 @@
         <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
         
         <div class="login-link">
-            New candidate? <a href="applicant-signup.html">Register here</a>
+            New candidate? <a href="rde-signup.html">Register here</a>
         </div>
     </div>
 
@@ -47,52 +47,32 @@
             const password = document.getElementById('log-pass').value;
 
             try {
-                // 1. Authenticate with the master Supabase Auth
+                // 1. Authenticate
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
                 if (authError) throw new Error("Invalid email or password.");
 
                 const userId = authData.user.id;
 
-                // 2. Check if they already have an application profile
-                let { data: appProfile, error: profileError } = await supabase
-                    .from('hiring_applications')
+                // 2. Fetch from the unified 'rdes' table
+                const { data: appProfile, error: profileError } = await supabase
+                    .from('rdes')
                     .select('*')
                     .eq('id', userId)
-                    .maybeSingle(); // maybeSingle doesn't throw an error if no row is found
+                    .maybeSingle(); 
 
-                // 3. The "Smart Bridge": If they are an existing student but new applicant, create their profile!
                 if (!appProfile) {
-                    msg.innerText = "Setting up your application profile...";
-                    
-                    // Fetch their name/phone from their student profile
-                    const { data: studentProfile } = await supabase.from('referrers').select('name, phone').eq('id', userId).single();
-                    
-                    const { error: insertErr } = await supabase.from('hiring_applications').insert([{
-                        id: userId,
-                        full_name: studentProfile?.name || "Candidate",
-                        phone: studentProfile?.phone || "Update required",
-                        email: email,
-                        payment_status: 'pending'
-                    }]);
-
-                    if (insertErr) throw insertErr;
-                    
-                    // Route to form to upload documents
-                    window.location.href = "applicant-form.html";
-                    return;
+                    throw new Error("No RDE application found. Please register first.");
                 }
 
-                // 4. Routing Logic: Where should they go based on their progress?
                 msg.style.backgroundColor = "rgba(74, 222, 128, 0.1)";
                 msg.style.color = "#4ade80"; 
                 msg.innerText = "Login successful! Routing...";
 
-                if (appProfile.application_status === 'under_review' || !appProfile.id_proof_url) {
-                    // They haven't uploaded documents yet
-                    setTimeout(() => { window.location.href = "applicant-form.html"; }, 1000);
+                // 3. Routing Logic based on Document Uploads
+                if (!appProfile.id_proof_url) {
+                    setTimeout(() => { window.location.href = "rde-form.html"; }, 1000);
                 } else {
-                    // Documents uploaded, send them to Dashboard (Milestone 5)
-                    setTimeout(() => { window.location.href = "applicant-dashboard.html"; }, 1000);
+                    setTimeout(() => { window.location.href = "rde-dashboard.html"; }, 1000);
                 }
 
             } catch (err) {

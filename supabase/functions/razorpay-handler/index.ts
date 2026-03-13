@@ -3,26 +3,26 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 serve(async (req) => {
   try {
-    // 1. Get the signature sent by Razorpay
     const signature = req.headers.get('x-razorpay-signature');
     const body = await req.text();
     const event = JSON.parse(body);
 
-    // 2. Initialize Supabase with Administrative Rights (Service Role)
-    // This allows the function to update 'payment_status' even if RLS is locked for users.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // 3. Only process successful payments
     if (event.event === 'payment.captured') {
       const payment = event.payload.payment.entity;
       const userEmail = payment.email; 
+      
+      // SMART ROUTING: Check the notes we will send from the frontend to see who is paying
+      const accountType = payment.notes?.account_type || 'referrer'; 
+      const targetTable = accountType === 'rde' ? 'rdes' : 'referrers';
 
-      // 4. Update the database securely
+      // Update the correct table dynamically
       const { error } = await supabase
-        .from('referrers')
+        .from(targetTable)
         .update({ 
             payment_status: 'paid',
             razorpay_payment_id: payment.id 
@@ -30,7 +30,7 @@ serve(async (req) => {
         .eq('email', userEmail);
 
       if (error) throw error;
-      console.log(`Payment confirmed for: ${userEmail}`);
+      console.log(`Payment confirmed for ${accountType}: ${userEmail}`);
     }
 
     return new Response(JSON.stringify({ received: true }), { 
