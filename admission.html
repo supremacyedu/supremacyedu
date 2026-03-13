@@ -128,6 +128,15 @@
 </footer>
 
 <script>
+    // Inside your Admission Form Submit Handler
+const { data, error } = await supabase.from('student_admissions').insert([{
+    student_name: studentName,
+    course_fee: courseFee,
+    referrer_code: referrerCodeInput, // Linked via form
+    // Automate the 5-day clearance date
+    payout_ready_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    status: 'pending_clearance'
+}]);
     // Keep your existing script logic, just ensure IDs match
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("admissionForm");
