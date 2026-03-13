@@ -1,4 +1,39 @@
+# --- Security & Secrets ---
+# Ignore environment files containing API keys (Supabase, Razorpay, Fast2SMS)
 .env
 .env.local
+.env.*.local
+
+# --- Dependencies ---
+# Never upload node_modules; they are huge and recreated with 'npm install'
+node_modules/
+jspm_packages/
+
+# --- Supabase Specific ---
+# Ignore local database states and temporary CLI files
+supabase/.temp/
+supabase/.storage/
+supabase/migrations/.*
+.supabase/
+
+# --- Logs & Debugging ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs
+*.log
+
+# --- OS & Editor Specific ---
+.DS_Store
+Thumbs.db
 .vscode/
-.node_modules/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Build Outputs ---
+# If you use Vite, Webpack, or a build step later
+dist/
+out/
+build/
