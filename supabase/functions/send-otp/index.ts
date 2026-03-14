@@ -1,29 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+// 1. Define the CORS headers to allow your website
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // You can change '*' to 'https://supremacyedu.com' later for stricter security
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // 2. Intercept the browser's preflight 'OPTIONS' request and approve it immediately
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const { phone } = await req.json()
-    
-    // 1. Generate a secure 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
-    // 2. Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 3. Save the OTP to your database (upsert handles overwriting old requests for the same number)
     const { error: dbError } = await supabase
       .from('otp_requests')
-      .upsert({ phone: phone, otp: otp, created_at: new Date() })
+      .insert({ phone_number: phone, otp: otp, expires_at: expiresAt })
 
-    if (dbError) throw new Error('Failed to save OTP to database')
+    if (dbError) throw new Error(`Database error: ${dbError.message}`)
 
-    // 4. Send via 2factor (Bypassing Voice Fallback)
     const apiKey = Deno.env.get('TWOFACTOR_API_KEY')
-    const templateName = 'OTP1' // Your approved template name
+    const templateName = 'OTP1' 
     const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/${otp}/${templateName}`
 
     const response = await fetch(url, { method: 'GET' })
@@ -31,13 +38,15 @@ serve(async (req) => {
 
     if (data.Status !== 'Success') throw new Error('2factor failed to send SMS')
 
+    // 3. Make sure to include the corsHeaders in your final success response too
     return new Response(JSON.stringify({ success: true, message: "OTP sent successfully" }), {
-      headers: { "Content-Type": "application/json" }, status: 200
+      headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200
     })
 
   } catch (error) {
+    // 4. And include corsHeaders in your error response
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json" }, status: 400
+      headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400
     })
   }
 })
