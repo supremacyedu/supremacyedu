@@ -14,8 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { phone } = await req.json()
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    let { phone } = await req.json()
+
+// Remove any '+' signs the user might have typed
+phone = phone.replace('+', '')
+
+// If they only typed 10 digits, add the 91 country code (WITHOUT the +)
+if (phone.length === 10) {
+  phone = `91${phone}`
+}
+    // Generate a secure 4-digit OTP (e.g., 1000 to 9999)
+const otp = Math.floor(1000 + Math.random() * 9000).toString()
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
     const supabase = createClient(
@@ -36,7 +45,7 @@ serve(async (req) => {
     const response = await fetch(url, { method: 'GET' })
     const data = await response.json()
 
-    if (data.Status !== 'Success') throw new Error('2factor failed to send SMS')
+    if (data.Status !== 'Success') throw new Error(`2factor error: ${data.Details || JSON.stringify(data)}`)
 
     // 3. Make sure to include the corsHeaders in your final success response too
     return new Response(JSON.stringify({ success: true, message: "OTP sent successfully" }), {
