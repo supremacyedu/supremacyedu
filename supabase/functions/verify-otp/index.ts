@@ -10,23 +10,25 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { phone } = await req.json();
+    const { sessionId, otp } = await req.json(); // We now expect sessionId from frontend
     const apiKey = Deno.env.get('TWO_FACTOR_API_KEY');
 
-    // AUTOGEN3 forces the best SMS route and generates the code for you
-    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/AUTOGEN3/OTP1`;
+    // 2Factor Verification URL using Session ID
+    const url = `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`;
 
     const response = await fetch(url, { method: "GET" });
     const result = await response.json();
 
-    if (result.Status === "Success") {
-      // We return the Session ID (result.Details) to the frontend
-      return new Response(JSON.stringify({ success: true, sessionId: result.Details }), {
+    if (result.Status === "Success" && result.Details === "OTP Matched") {
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     } else {
-      throw new Error(result.Details);
+      return new Response(JSON.stringify({ success: false, error: "Invalid OTP" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
     }
   } catch (error) {
     return new Response(JSON.stringify({ success: false, error: error.message }), {

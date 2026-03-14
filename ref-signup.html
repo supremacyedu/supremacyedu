@@ -121,6 +121,8 @@
     }
 
     // --- STEP 1: SEND OTP ---
+    let currentSessionId = ""; // Global variable to store the 2Factor Session ID
+
     document.getElementById('btn-send-otp').addEventListener('click', async () => {
         const phone = document.getElementById('reg-phone').value.trim();
         const btn = document.getElementById('btn-send-otp');
@@ -142,7 +144,11 @@
             });
 
             const result = await response.json();
+            
             if (!result.success) throw new Error(result.error || "Failed to send OTP.");
+
+            // CRITICAL: Save the sessionId returned by 2Factor
+            currentSessionId = result.sessionId; 
 
             document.getElementById('phone-section').style.display = 'none';
             document.getElementById('otp-section').style.display = 'block';
@@ -151,6 +157,48 @@
             showMessage(err.message, true);
             btn.disabled = false;
             btn.innerText = "Send OTP via SMS";
+        }
+    });
+
+    // --- STEP 2: VERIFY OTP ---
+    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
+        const otp = document.getElementById('reg-otp').value.trim();
+        const btn = document.getElementById('btn-verify-otp');
+
+        if(otp.length !== 6) {
+            showMessage("Please enter the 6-digit OTP.", true);
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Verifying...";
+        msgBox.style.display = "none";
+
+        try {
+            // We now call our verify-otp Edge Function instead of querying the DB directly
+            const response = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    sessionId: currentSessionId, 
+                    otp: otp 
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) throw new Error(result.error || "Invalid OTP code.");
+
+            // Success Transition
+            verifiedPhone = document.getElementById('reg-phone').value.trim(); 
+            document.getElementById('otp-section').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'block';
+            transitionTo(2, "Almost There", "Complete your profile to unlock your dashboard");
+
+        } catch (err) {
+            showMessage(err.message, true);
+            btn.disabled = false;
+            btn.innerText = "Verify & Continue";
         }
     });
 
