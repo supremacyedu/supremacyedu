@@ -11,7 +11,15 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
   try {
-    const { phone, submitted_otp } = await req.json()
+    let { phone, submitted_otp } = await req.json()
+
+// Clean the number to match the database format
+phone = phone.replace('+', '')
+if (phone.length === 10) {
+  phone = `91${phone}`
+}
+
+// ... now use this 'phone' variable in your database query
 
     // 1. Initialize Supabase client
     const supabase = createClient(
