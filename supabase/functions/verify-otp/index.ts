@@ -1,39 +1,48 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
   try {
-    const { sessionId, otp } = await req.json(); // We now expect sessionId from frontend
-    const apiKey = Deno.env.get('TWO_FACTOR_API_KEY');
+    const { phone, submitted_otp } = await req.json()
 
-    // 2Factor Verification URL using Session ID
-    const url = `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`;
+    // 1. Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    const response = await fetch(url, { method: "GET" });
-    const result = await response.json();
+    // 2. Fetch the stored OTP for this phone number
+    const { data, error } = await supabase
+      .from('otp_requests')
+      .select('otp, created_at')
+      .eq('phone', phone)
+      .single()
 
-    if (result.Status === "Success" && result.Details === "OTP Matched") {
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-    } else {
-      return new Response(JSON.stringify({ success: false, error: "Invalid OTP" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
+    if (error || !data) throw new Error('No OTP request found for this number')
+
+    // 3. Verify the OTP
+    if (data.otp !== submitted_otp) {
+      throw new Error('Invalid OTP')
     }
+
+    // Optional: Check expiration (e.g., 5 minutes)
+    const now = new Date().getTime()
+    const otpTime = new Date(data.created_at).getTime()
+    if (now - otpTime > 5 * 60 * 1000) {
+      throw new Error('OTP has expired')
+    }
+
+    // 4. Delete the OTP so it cannot be used again
+    await supabase.from('otp_requests').delete().eq('phone', phone)
+
+    // 5. Success! Return data to the frontend so you can log the user in
+    return new Response(JSON.stringify({ success: true, message: "Phone verified" }), {
+      headers: { "Content-Type": "application/json" }, status: 200
+    })
+
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400
-    });
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { "Content-Type": "application/json" }, status: 400
+    })
   }
 })
