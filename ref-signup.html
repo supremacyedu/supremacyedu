@@ -5,305 +5,110 @@
     <title>Supremacy Edu - Referrer Signup</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="auth.css">
-    <style>
-        /* Stepper UI Styles */
-        .step { color: #64748b; font-size: 13px; font-weight: bold; padding-bottom: 5px; border-bottom: 2px solid #334155; flex: 1; text-align: center; transition: 0.3s; }
-        .active-step { color: #38bdf8; border-bottom-color: #38bdf8; }
-        .completed-step { color: #4ade80; border-bottom-color: #4ade80; }
-    </style>
 </head>
 <body class="auth-page">
-    <div class="signup-card">
-        <a href="index.html" class="back-btn" style="margin-bottom: 20px;">&larr; Back to Website</a>
 
-        <div id="step-indicator" style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 25px;">
-            <div class="step active-step" id="step1-dot">1. Phone</div>
-            <div class="step" id="step2-dot">2. Details</div>
-            <div class="step" id="step3-dot">3. Verify Email</div>
-        </div>
-
-        <h2 id="form-title">Verify Phone</h2>
-        <p id="form-subtitle">Enter your 10-digit mobile number</p>
-
-        <div id="phone-section">
-            <div class="input-group">
-                <input type="tel" id="reg-phone" placeholder="Phone Number (10 digits)" required>
-            </div>
-            <button type="button" class="primary-btn" id="btn-send-otp">Send OTP via SMS</button>
-        </div>
-
-        <div id="otp-section" style="display: none;">
-            <p style="color: #4ade80; font-size: 13px; margin-bottom: 10px; text-align: center;">OTP sent to your phone!</p>
-            <div class="input-group">
-                <input type="text" id="reg-otp" placeholder="Enter 4-digit OTP" required maxlength="4" style="text-align: center; letter-spacing: 5px; font-size: 18px;">
-            </div>
-            <button type="button" class="primary-btn" id="btn-verify-otp">Verify & Continue</button>
-            <button type="button" class="back-btn" style="margin-top: 10px; width: 100%; justify-content: center;" onclick="location.reload()">Edit Phone Number</button>
-        </div>
-
-        <form id="signup-form" style="display: none;">
-            <div class="input-group"><input type="text" id="reg-name" placeholder="Full Name" required></div>
-            <div class="input-group"><input type="email" id="reg-email" placeholder="Email Address" required></div>
+    <div class="auth-card" id="signup-section">
+        <h2>Become a Referrer</h2>
+        <p>Join the network and earn commissions.</p>
+        <form id="signup-form">
+            <div class="input-group"><input type="text" id="fullName" placeholder="Full Name" required /></div>
+            <div class="input-group"><input type="tel" id="phone1" placeholder="Phone 1" required /></div>
+            <div class="input-group"><input type="tel" id="phone2" placeholder="Phone 2 (Optional)" /></div>
+            <div class="input-group"><input type="email" id="email" placeholder="Email Address" required /></div>
+            <div class="input-group"><input type="text" id="rdeCode" placeholder="RDE Code (Mandatory)" required style="text-transform: uppercase;" /></div>
+            <div class="input-group"><input type="text" id="refCode" placeholder="REF Code (Optional)" style="text-transform: uppercase;" /></div>
+            <div class="input-group"><input type="password" id="password" placeholder="Password" required /></div>
             
-            <div class="input-group" style="border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px;">
-                <input type="text" id="regRdeCode" placeholder="Mandatory RDE Code (e.g., RDE001A)" required>
-            </div>
-            
-            <div class="input-group">
-                <input type="text" id="regRefRecruiter" placeholder="Optional Referrer Code (If any)">
-            </div>
-
-            <div class="input-group"><input type="password" id="reg-pass" placeholder="Create Password" required></div>
-            
-            <div class="options" style="margin-bottom: 20px;">
-                <input type="checkbox" id="agree-tc" required style="width: auto; margin-right: 10px; cursor: pointer;">
-                <label for="agree-tc" style="color: #94a3b8; font-size: 13px;">I agree to the <a href="ref-t&c.html" target="_blank" style="color: #38bdf8;">Terms & Conditions</a></label>
-            </div>
-            
-            <button type="submit" class="primary-btn" id="submit-btn">Complete Sign Up</button>
+            <button type="submit" class="primary-btn">Create Account</button>
         </form>
-
-        <div id="email-verify-step" style="display: none; text-align: center; padding: 10px;">
-            <div style="font-size: 50px; margin-bottom: 15px;">✉️</div>
-            <h2 style="color: #4ade80; margin-bottom: 10px;">Verify Your Email</h2>
-            <p style="color: #94a3b8; line-height: 1.5; font-size: 14px;">
-                We've sent a secure link to <strong id="sent-to-email" style="color: white;"></strong>. <br>
-                Please click the link in that email to activate your account.
-            </p>
-            <div style="margin-top: 25px; padding: 15px; background: rgba(56, 189, 248, 0.1); border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                <p style="font-size: 13px; color: #38bdf8; margin: 0; font-weight: bold;">
-                    Redirecting to Login in <span id="timer">10</span>s...
-                </p>
-            </div>
-            <button class="back-btn" style="margin-top: 20px; width: 100%; justify-content: center;" onclick="window.location.href='ref-login.html'">Go to Login Now</button>
-        </div>
-
-        <div id="message" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; display: none;"></div>
-        
-        <div class="login-link" id="login-link-container">
-            Already have an account? <a href="ref-login.html">Log in here</a>
+        <div class="auth-link-container">
+            Already have an account? <a href="ref-login.html">Log in</a>
         </div>
     </div>
 
-<script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-    
-    // Replace with your exact Supabase URL and Anon Key
-    const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
-    const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    <div class="auth-card" id="otp-section" style="display: none;">
+        <h2>Verify Your Email</h2>
+        <p>We sent a 6-digit OTP to your email address.</p>
+        <form id="otp-form">
+            <div class="input-group"><input type="text" id="otpToken" placeholder="Enter 6-digit OTP" required /></div>
+            <button type="submit" class="primary-btn">Verify & Continue</button>
+        </form>
+    </div>
 
-    const msgBox = document.getElementById('message');
-    let verifiedPhone = ""; 
-
-    function showMessage(text, isError = false) {
-        msgBox.style.display = "block";
-        msgBox.style.backgroundColor = isError ? "rgba(248, 113, 113, 0.1)" : "rgba(56, 189, 248, 0.1)";
-        msgBox.style.color = isError ? "#f87171" : "#38bdf8"; 
-        msgBox.innerHTML = text;
-    }
-
-    function transitionTo(stepNumber, title, subtitle) {
-        document.getElementById('form-title').innerText = title;
-        document.getElementById('form-subtitle').innerText = subtitle;
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
         
-        if(stepNumber === 2) {
-            document.getElementById('step1-dot').classList.remove('active-step');
-            document.getElementById('step1-dot').classList.add('completed-step');
-            document.getElementById('step1-dot').innerHTML = '✓ Phone';
-            document.getElementById('step2-dot').classList.add('active-step');
-        } else if (stepNumber === 3) {
-            document.getElementById('step2-dot').classList.remove('active-step');
-            document.getElementById('step2-dot').classList.add('completed-step');
-            document.getElementById('step2-dot').innerHTML = '✓ Details';
-            document.getElementById('step3-dot').classList.add('active-step');
-        }
-    }
+        const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
+        const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // --- STEP 1: SEND OTP ---
-    let currentSessionId = ""; // Global variable to store the 2Factor Session ID
+        const signupForm = document.getElementById('signup-form');
+        const otpForm = document.getElementById('otp-form');
+        let userEmail = '';
 
-    document.getElementById('btn-send-otp').addEventListener('click', async () => {
-        const phone = document.getElementById('reg-phone').value.trim();
-        const btn = document.getElementById('btn-send-otp');
-        
-        if(phone.length < 10) {
-            showMessage("Please enter a valid 10-digit phone number.", true);
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "Sending...";
-        msgBox.style.display = "none";
-
-        try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/send-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: phone })
-            });
-
-            const result = await response.json();
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            userEmail = document.getElementById('email').value;
             
-            if (!result.success) throw new Error(result.error || "Failed to send OTP.");
-
-            // CRITICAL: Save the sessionId returned by 2Factor
-            currentSessionId = result.sessionId; 
-
-            document.getElementById('phone-section').style.display = 'none';
-            document.getElementById('otp-section').style.display = 'block';
-            
-        } catch (err) {
-            showMessage(err.message, true);
-            btn.disabled = false;
-            btn.innerText = "Send OTP via SMS";
-        }
-    });
-
-    // --- STEP 2: VERIFY OTP ---
-    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
-        const otp = document.getElementById('reg-otp').value.trim();
-        const btn = document.getElementById('btn-verify-otp');
-
-        if(otp.length !== 4) {
-            showMessage("Please enter the 4-digit OTP.", true);
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "Verifying...";
-        msgBox.style.display = "none";
-
-        try {
-            // We now call our verify-otp Edge Function instead of querying the DB directly
-            const response = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    sessionId: currentSessionId, 
-                    otp: otp 
-                })
-            });
-
-            const result = await response.json();
-
-            if (!result.success) throw new Error(result.error || "Invalid OTP code.");
-
-            // Success Transition
-            verifiedPhone = document.getElementById('reg-phone').value.trim(); 
-            document.getElementById('otp-section').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'block';
-            transitionTo(2, "Almost There", "Complete your profile to unlock your dashboard");
-
-        } catch (err) {
-            showMessage(err.message, true);
-            btn.disabled = false;
-            btn.innerText = "Verify & Continue";
-        }
-    });
-
-    // --- STEP 2: VERIFY OTP ---
-    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
-        const phone = document.getElementById('reg-phone').value.trim();
-        const otp = document.getElementById('reg-otp').value.trim();
-        const btn = document.getElementById('btn-verify-otp');
-
-        if(otp.length !== 4) {
-            showMessage("Please enter the 4-digit OTP.", true);
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "Verifying...";
-        msgBox.style.display = "none";
-
-        try {
-            const { data, error } = await supabase
-                .from('otp_requests')
-                .select('*')
-                .eq('phone_number', phone)
-                .eq('otp_code', otp)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
-
-            if (error || !data) throw new Error("Invalid OTP code.");
-            if (new Date(data.expires_at) < new Date()) throw new Error("OTP has expired. Please try again.");
-
-            await supabase.from('otp_requests').update({ is_verified: true }).eq('id', data.id);
-
-            // Success Transition
-            verifiedPhone = phone; 
-            document.getElementById('otp-section').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'block';
-            transitionTo(2, "Almost There", "Complete your profile to unlock your dashboard");
-
-        } catch (err) {
-            showMessage(err.message, true);
-            btn.disabled = false;
-            btn.innerText = "Verify & Continue";
-        }
-    });
-
-    // --- STEP 3: SUBMIT PROFILE & SEND EMAIL ---
-    document.getElementById('signup-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('submit-btn');
-        btn.disabled = true;
-        msgBox.style.display = "none";
-
-        const name = document.getElementById('reg-name').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-pass').value;
-        const referringRde = document.getElementById('regRdeCode').value.trim().toUpperCase(); 
-        const referringRefInput = document.getElementById('regRefRecruiter').value.trim().toUpperCase();
-        
-        const referringRef = referringRefInput === "" ? null : referringRefInput;
-
-        try {
-            // 1. Auth Signup (Triggers Resend Email)
-            const { data: authData, error: authErr } = await supabase.auth.signUp({ 
-                email, 
-                password,
-                options: { emailRedirectTo: window.location.origin + '/ref-login.html' }
-            });
-            if (authErr) throw authErr;
-
-            // 2. Insert into Referrers Database
-            const { error: dbErr } = await supabase.from('referrers').insert([{
-                id: authData.user.id,
-                name: name,
-                phone: verifiedPhone, 
-                email: email,
-                referred_by_rde: referringRde,
-                referred_by_ref: referringRef
-            }]);
-            if (dbErr) throw dbErr;
-
-            // 3. Final UX Transition
-            transitionTo(3, "Check Your Inbox", "Just one last step.");
-            document.getElementById('signup-form').style.display = 'none';
-            document.getElementById('login-link-container').style.display = 'none';
-            document.getElementById('email-verify-step').style.display = 'block';
-            document.getElementById('sent-to-email').innerText = email;
-
-            // 4. Redirect Countdown
-            let timeLeft = 10;
-            const timerSpan = document.getElementById('timer');
-            const countdown = setInterval(() => {
-                timeLeft--;
-                timerSpan.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    window.location.href = 'ref-login.html';
+            // Trigger Supabase Signup with custom user metadata
+            const { data, error } = await supabase.auth.signUp({
+                email: userEmail,
+                password: document.getElementById('password').value,
+                options: {
+                    data: {
+                        full_name: document.getElementById('fullName').value,
+                        phone_1: document.getElementById('phone1').value,
+                        phone_2: document.getElementById('phone2').value,
+                        rde_code: document.getElementById('rdeCode').value.toUpperCase(),
+                        entered_ref_code: document.getElementById('refCode').value.toUpperCase()
+                    }
                 }
-            }, 1000);
+            });
 
-        } catch (err) {
-            showMessage(err.message, true);
-            btn.disabled = false;
-        }
-    });
-</script>
+            if (error) {
+                alert(error.message);
+                return;
+            }
+
+            // Swap UI to OTP input
+            document.getElementById('signup-section').style.display = 'none';
+            document.getElementById('otp-section').style.display = 'block';
+        });
+
+        otpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('otpToken').value;
+
+            // Verify Email OTP
+            const { data, error } = await supabase.auth.verifyOtp({
+                email: userEmail,
+                token: token,
+                type: 'signup'
+            });
+
+           if (error) {
+        alert(error.message); // Consider changing this to an inline error message later!
+        return;
+    }
+    
+    // 4. Success! Show themed confirmation, then redirect
+    const otpSection = document.getElementById('otp-section');
+    otpSection.innerHTML = `
+        <div style="text-align: center; padding: 20px 0; animation: slideUpFade 0.5s forwards;">
+            <div style="background: rgba(74, 222, 128, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h2 style="color: white; margin-bottom: 10px; font-size: 24px;">Verification Complete!</h2>
+            <p style="color: var(--text-muted);">Your email has been verified. Redirecting to login...</p>
+        </div>
+    `;
+
+    // Wait 2 seconds so they can see the success message, then route to login
+    setTimeout(() => {
+        window.location.href = 'ref-login.html';
+    }, 2000);
+        });
+    </script>
 </body>
 </html>
