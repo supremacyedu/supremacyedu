@@ -9,36 +9,68 @@
 <body class="auth-page">
 
     <div class="auth-card" id="signup-section">
-        <h2>Become a Referrer</h2>
-        <p>Join the network and earn commissions.</p>
+        <h2 style="text-align: center;">Become a Referrer</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">Join the network and earn commissions.</p>
+        
         <form id="signup-form">
-            <div class="input-group"><input type="text" id="fullName" placeholder="Full Name" required /></div>
-            <div class="input-group"><input type="tel" id="phone1" placeholder="Phone 1" required /></div>
-            <div class="input-group"><input type="tel" id="phone2" placeholder="Phone 2 (Optional)" /></div>
-            <div class="input-group"><input type="email" id="email" placeholder="Email Address" required /></div>
-            <div class="input-group"><input type="text" id="rdeCode" placeholder="RDE Code (Mandatory)" required style="text-transform: uppercase;" /></div>
-            <div class="input-group"><input type="text" id="refCode" placeholder="REF Code (Optional)" style="text-transform: uppercase;" /></div>
-            <div class="input-group"><input type="password" id="password" placeholder="Password" required /></div>
+            <div class="input-group">
+                <input type="text" id="fullName" placeholder="Full Name" required />
+            </div>
+            <div class="input-group">
+                <input type="tel" id="phone1" placeholder="Phone 1" required pattern="[0-9]+" maxlength="10" />
+            </div>
+            <div class="input-group">
+                <input type="tel" id="phone2" placeholder="Phone 2 (Optional)" pattern="[0-9]+" maxlength="10" />
+            </div>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Email Address" required />
+            </div>
+            <div class="input-group">
+                <input type="text" id="rdeCode" placeholder="RDE Code (e.g., RDE001A)" required style="text-transform: uppercase;" maxlength="7" />
+            </div>
+            <div class="input-group">
+                <input type="text" id="refCode" placeholder="REF Code (Optional, e.g., REF0001A)" style="text-transform: uppercase;" maxlength="8" />
+            </div>
             
-            <button type="submit" class="primary-btn">Create Account</button>
+            <div class="input-group" style="position: relative;">
+                <input type="password" id="password" placeholder="Password" required style="width: 100%; padding-right: 40px; box-sizing: border-box;" />
+                <button type="button" onclick="togglePassword('password', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </button>
+            </div>
+            
+            <button type="submit" class="primary-btn" style="width: 100%; margin-top: 10px;">Create Account</button>
         </form>
-        <div class="auth-link-container">
-            Already have an account? <a href="ref-login.html">Log in</a>
+        
+        <div class="auth-link-container" style="text-align: center; margin-top: 20px; font-size: 14px;">
+            <span style="color: var(--text-muted);">Already have an account?</span> <a href="ref-login.html" style="color: var(--primary); text-decoration: none; font-weight: bold;">Log in</a>
         </div>
     </div>
 
-    <div class="auth-card" id="otp-section" style="display: none;">
-        <h2>Verify Your Email</h2>
-        <p>We sent a 6-digit OTP to your email address.</p>
+    <div class="auth-card" id="otp-section" style="display: none; text-align: center;">
+        <h2 style="color: white; margin-bottom: 10px;">Enter OTP</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">We sent an 8-digit code to <br><strong id="display-user-email" style="color: var(--primary);">your email</strong></p>
+        
         <form id="otp-form">
-            <div class="input-group"><input type="text" id="otpToken" placeholder="Enter 6-digit OTP" required /></div>
-            <button type="submit" class="primary-btn">Verify & Continue</button>
+            <div class="input-group">
+                <input type="text" id="otp-input" placeholder="00000000" required maxlength="8" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-weight: bold;" />
+            </div>
+            <button type="submit" class="primary-btn" style="width: 100%; margin-bottom: 15px;">Verify Email</button>
+            
+            <button type="button" id="change-email-btn" style="background: transparent; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; gap: 8px; padding: 10px; transition: color 0.3s;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Typo in email? Go back
+            </button>
         </form>
     </div>
 
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
+        // --- SECURE CONFIGURATION ---
         const supabaseUrl = 'https://dlszqasvqubjujkowrtl.supabase.co';
         const supabaseKey = 'sb_publishable_er7TxyaoL2bTTUAKKEplfA_vj5IHVxM';
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -47,67 +79,124 @@
         const otpForm = document.getElementById('otp-form');
         let userEmail = '';
 
+        // --- PASSWORD VISIBILITY TOGGLE ---
+        window.togglePassword = function(inputId, btnElement) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btnElement.style.color = 'var(--primary)';
+                btnElement.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>`;
+            } else {
+                input.type = 'password';
+                btnElement.style.color = 'var(--text-muted)';
+                btnElement.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>`;
+            }
+        };
+
+        // --- SIGNUP FORM LOGIC ---
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            userEmail = document.getElementById('email').value;
             
-            // Trigger Supabase Signup with custom user metadata
+            // 1. Grab and clean values
+            userEmail = document.getElementById('email').value.trim();
+            const phone1 = document.getElementById('phone1').value.trim();
+            const phone2 = document.getElementById('phone2').value.trim();
+            const rdeCode = document.getElementById('rdeCode').value.trim().toUpperCase();
+            
+            // If REF code is empty, safely pass null, otherwise format it
+            const rawRefCode = document.getElementById('refCode').value.trim();
+            const finalRefCode = rawRefCode === '' ? null : rawRefCode.toUpperCase();
+
+            // 2. Strict Regex Validation
+            const phoneRegex = /^[0-9]+$/; 
+            const rdeRegex = /^RDE[0-9]{3}[A-Z]$/; 
+            const refRegex = /^REF[0-9]{4}[A-Z]$/; 
+
+            if (!phoneRegex.test(phone1)) {
+                return alert("Typo in Phone 1: Must contain numbers only (no spaces or letters).");
+            }
+            if (phone2 !== "" && !phoneRegex.test(phone2)) {
+                return alert("Typo in Phone 2: Must contain numbers only.");
+            }
+            if (!rdeRegex.test(rdeCode)) {
+                return alert("Typo in RDE Code!\n\nFormat must be strictly: RDE + 3 Numbers + 1 Letter.\nExample: RDE001A");
+            }
+            if (finalRefCode !== null && !refRegex.test(finalRefCode)) {
+                return alert("Typo in REF Code!\n\nFormat must be strictly: REF + 4 Numbers + 1 Letter.\nExample: REF0001A");
+            }
+
+            // 3. Trigger Supabase Signup
             const { data, error } = await supabase.auth.signUp({
                 email: userEmail,
                 password: document.getElementById('password').value,
                 options: {
                     data: {
-                        full_name: document.getElementById('fullName').value,
-                        phone_1: document.getElementById('phone1').value,
-                        phone_2: document.getElementById('phone2').value,
-                        rde_code: document.getElementById('rdeCode').value.toUpperCase(),
-                        entered_ref_code: document.getElementById('refCode').value.toUpperCase()
+                        full_name: document.getElementById('fullName').value.trim(),
+                        phone_1: phone1,
+                        phone_2: phone2,
+                        rde_code: rdeCode,
+                        entered_ref_code: finalRefCode
                     }
                 }
             });
 
             if (error) {
-                alert(error.message);
+                alert("Signup Error: " + error.message);
                 return;
             }
 
-            // Swap UI to OTP input
+            // 4. Update UI to OTP screen
+            document.getElementById('display-user-email').innerText = userEmail;
             document.getElementById('signup-section').style.display = 'none';
             document.getElementById('otp-section').style.display = 'block';
         });
 
+        // --- GO BACK BUTTON LOGIC ---
+        document.getElementById('change-email-btn').addEventListener('click', () => {
+            document.getElementById('otp-section').style.display = 'none';
+            document.getElementById('signup-section').style.display = 'block';
+            document.getElementById('otp-input').value = '';
+        });
+
+        // --- OTP VERIFICATION LOGIC ---
         otpForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const token = document.getElementById('otpToken').value;
+            const token = document.getElementById('otp-input').value.trim();
 
-            // Verify Email OTP
             const { data, error } = await supabase.auth.verifyOtp({
                 email: userEmail,
                 token: token,
                 type: 'signup'
             });
 
-           if (error) {
-        alert(error.message); // Consider changing this to an inline error message later!
-        return;
-    }
-    
-    // 4. Success! Show themed confirmation, then redirect
-    const otpSection = document.getElementById('otp-section');
-    otpSection.innerHTML = `
-        <div style="text-align: center; padding: 20px 0; animation: slideUpFade 0.5s forwards;">
-            <div style="background: rgba(74, 222, 128, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </div>
-            <h2 style="color: white; margin-bottom: 10px; font-size: 24px;">Verification Complete!</h2>
-            <p style="color: var(--text-muted);">Your email has been verified. Redirecting to login...</p>
-        </div>
-    `;
+            if (error) {
+                alert("Verification Failed: " + error.message); 
+                return;
+            }
+            
+            // Success State UI
+            const otpSection = document.getElementById('otp-section');
+            otpSection.innerHTML = `
+                <div style="text-align: center; padding: 20px 0; animation: slideUpFade 0.5s forwards;">
+                    <div style="background: rgba(74, 222, 128, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <h2 style="color: white; margin-bottom: 10px; font-size: 24px;">Verification Complete!</h2>
+                    <p style="color: var(--text-muted);">Your email has been verified. Redirecting to login...</p>
+                </div>
+            `;
 
-    // Wait 2 seconds so they can see the success message, then route to login
-    setTimeout(() => {
-        window.location.href = 'ref-login.html';
-    }, 2000);
+            setTimeout(() => {
+                window.location.href = 'ref-login.html';
+            }, 2000);
         });
     </script>
 </body>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supremacy Edu - My Network</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="app-layout">
+    
+    <div id="sidebar-container"></div>
+
+    <main class="main-content" id="main-dashboard">
+        <header class="top-navbar">
+            <div class="page-title">My Network</div>
+        </header>
+
+        <div class="dashboard-container" style="display: none;" id="network-content">
+            
+            <div style="margin-bottom: 30px;">
+                <h1 style="color: white; font-size: 28px; margin-bottom: 5px;">Student Admissions</h1>
+                <p style="color: var(--text-muted);">Track the students who used your REF Code and monitor your earnings.</p>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                    <h3 style="color: white; font-size: 18px; margin: 0;">Detailed Breakdown</h3>
+                    <div style="background: rgba(56, 189, 248, 0.1); color: var(--primary); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold;">
+                        Your Rate: <span id="network-rate-badge">0%</span>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Date Admitted</th>
+                                <th>Payment Status</th>
+                                <th>Course Fee</th>
+                                <th>Your Commission</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table-body">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">Loading network data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="mobile-nav-container"></div>
+
+</div>
+
+<script type="module" src="ref-network.js"></script>
+</body>
+</html>

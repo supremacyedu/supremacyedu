@@ -326,7 +326,7 @@ to track your commissions.`;
         }
     };
     
-    const rzp = new Razorpay(options);
+    const rzp = new window.Razorpay(options);
     rzp.on('payment.failed', function (response){
         msg.style.display = "block";
         msg.innerText = "Payment failed: " + response.error.description;
